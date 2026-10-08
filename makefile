@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -g -pg --coverage
+CFLAGS = -Wall -Wextra -pedantic -g 
 LDFLAGS = -pg --coverage
 LDLIBS = -lm
 CUNIT_LIBS = -lcunit
@@ -16,13 +16,13 @@ VENDOR_O = $(HT_O) $(LL_O) $(UTILS_O)
 BACKEND_SRC = $(wildcard $(BACKEND_DIR)/*.c)
 BACKEND_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(BACKEND_SRC))
 
-.PHONY: backend backend_test test clean
+.PHONY: backend backend_test clean
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-backend: $(BACKEND_O) $(VENDOR)
+backend: $(BACKEND_O) $(VENDOR_O)
 
 $(BUILD_DIR)/backend_test: $(BUILD_DIR)/test/backend.o $(BACKEND_O) $(VENDOR_O)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS) $(CUNIT_LIBS)

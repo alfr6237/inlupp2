@@ -1,6 +1,7 @@
 #include "../src/backend/cart.h"
 #include "../src/backend/merch.h"
 #include "../src/backend/store.h"
+#include "../vendor/linked_list.h"
 
 #include <CUnit/Basic.h>
 #include <stdbool.h>
@@ -8,6 +9,14 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+void test_create_merch(void) {
+  merch_t *m = ioopm_merch_create("hej", "h", 12);
+  ioopm_merch_destroy(m);
+
+  ioopm_list_t *l = ioopm_list_create();
+  ioopm_list_destroy(l);
+}
 
 int init_suite(void) {
   // Change this function if you want to do something *before* you
@@ -35,7 +44,7 @@ int main(void) {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  if (0) {
+  if ((CU_add_test(ht_test_suite, "test", test_create_merch) == NULL) || 0) {
     // If adding any of the tests fails, we tear down CUnit and exit
     CU_cleanup_registry();
     return CU_get_error();

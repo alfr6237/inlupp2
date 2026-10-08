@@ -1,10 +1,11 @@
 #include <stddef.h>
 
+#include "../../vendor/hash_table.h"
 typedef struct merch merch_t;
 
 struct merch {
-  char *name;
-  char *desc;
+  const char *name;
+  const char *desc;
   size_t price;
 };
 
