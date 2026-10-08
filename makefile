@@ -12,7 +12,9 @@ LL_O = $(addprefix $(BUILD_DIR)/,vendor/linked_list.o vendor/linked_list_iterato
 UTILS_O  = $(BUILD_DIR)/vendor/utils.o
 
 VENDOR_O = $(HT_O) $(LL_O) $(UTILS_O)
-BACKEND_O = $(addprefix $(BUILD_DIR)/$(BACKEND_DIR)/,store.o cart.o shelf.o)
+
+BACKEND_SRC = $(wildcard $(BACKEND_DIR)/*.c)
+BACKEND_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(BACKEND_SRC))
 
 .PHONY: backend backend_test test clean
 
