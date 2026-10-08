@@ -11,6 +11,7 @@ HT_O = $(addprefix $(BUILD_DIR)/,vendor/hash_table.o vendor/hash_table_iterator.
 LL_O = $(addprefix $(BUILD_DIR)/,vendor/linked_list.o vendor/linked_list_iterator.o)
 UTILS_O  = $(BUILD_DIR)/vendor/utils.o
 
+VENDOR_O = $(HT_O) $(LL_O) $(UTILS_O)
 BACKEND_O = $(addprefix $(BUILD_DIR)/$(BACKEND_DIR)/,store.o cart.o shelf.o)
 
 .PHONY: backend backend_test test clean
@@ -19,9 +20,9 @@ $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-backend: $(BACKEND_O) $(HT_O) $(LL_O) $(UTILS_O)
+backend: $(BACKEND_O) $(VENDOR)
 
-$(BUILD_DIR)/backend_test: $(BUILD_DIR)/test/backend.o $(BACKEND_O) $(HT_O) $(LL_O) $(UTILS_O)
+$(BUILD_DIR)/backend_test: $(BUILD_DIR)/test/backend.o $(BACKEND_O) $(VENDOR_O)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS) $(CUNIT_LIBS)
 
 backend_test: $(BUILD_DIR)/backend_test
