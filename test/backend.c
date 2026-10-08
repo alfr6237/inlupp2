@@ -1,5 +1,5 @@
 #include "../src/backend/cart.h"
-#include "../src/backend/shelf.h"
+#include "../src/backend/merch.h"
 #include "../src/backend/store.h"
 
 #include <CUnit/Basic.h>
