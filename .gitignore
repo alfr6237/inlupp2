@@ -56,3 +56,6 @@ dkms.conf
 
 #mac folder status
 *.DS_Store
+
+#build
+build/
