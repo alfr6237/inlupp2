@@ -1,13 +1,18 @@
+#pragma once
+#include "../../vendor/linked_list.h"
 #include <stddef.h>
 
-#include "../../vendor/hash_table.h"
-typedef struct merch merch_t;
+typedef struct merch ioopm_merch_t;
 
 struct merch {
-  const char *name;
-  const char *desc;
+  char *name;
+  char *desc;
+
   size_t price;
+
+  ioopm_list_t *locations; // list of shelves
 };
 
-merch_t *ioopm_merch_create(const char *name, const char *desc, size_t price);
-void ioopm_merch_destroy(merch_t *merch);
+ioopm_merch_t *ioopm_merch_create(const char *name, const char *desc,
+                                  size_t price);
+void ioopm_merch_destroy(ioopm_merch_t *merch);

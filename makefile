@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -g 
-LDFLAGS = -pg --coverage
+LDFLAGS = --coverage
 LDLIBS = -lm
 CUNIT_LIBS = -lcunit
 
@@ -29,6 +29,8 @@ $(BUILD_DIR)/backend_test: $(BUILD_DIR)/test/backend.o $(BACKEND_O) $(VENDOR_O)
 
 backend_test: $(BUILD_DIR)/backend_test
 	./$<
+
+profile_backend: 
 
 
 clean:

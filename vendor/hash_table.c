@@ -12,56 +12,53 @@
 
 static size_t bucket_size(entry_t *entry);
 static entry_t *entry_create(elem_t key, elem_t value, entry_t *next);
-static entry_t *entry_destroy(entry_t *entry);
+static entry_t *entry_destroy(entry_t *entry, ioopm_remove_key_fn *rm_key,
+                              ioopm_remove_value_fn *rm_value);
 static entry_t **find_entry_for_key(ioopm_hash_table_t *ht, elem_t key);
 
 /// Allocate space for a ioopm_hash_table_t = 17 pointers to entry_t's
-ioopm_hash_table_t *ioopm_hash_table_create(ioopm_hash_function *hash_fn,
-                                            ioopm_eq_function *key_eq_fn)
-{
+ioopm_hash_table_t *
+ioopm_hash_table_create(ioopm_hash_function *hash_fn,
+                        ioopm_eq_function *key_eq_fn,
+                        ioopm_remove_key_fn *remove_key_fn,
+                        ioopm_remove_value_fn *remove_value_fn) {
   /// Allocate zeroed-out space for a ioopm_hash_table_t = 17 pointers to
   /// entry_t's
   ioopm_hash_table_t *ht = calloc(1, sizeof(ioopm_hash_table_t));
   ht->buckets = calloc(BUCKET_COUNT, sizeof(entry_t *));
   ht->hash_fn = hash_fn;
   ht->key_eq_fn = key_eq_fn;
+  ht->remove_key_fn = remove_key_fn;
+  ht->remove_value_fn = remove_value_fn;
   return ht;
 }
 
-void ioopm_hash_table_destroy(ioopm_hash_table_t *ht)
-{
-  for (size_t i = 0; i < BUCKET_COUNT; i++)
-  {
+void ioopm_hash_table_destroy(ioopm_hash_table_t *ht) {
+  for (size_t i = 0; i < BUCKET_COUNT; i++) {
     entry_t *cursor = ht->buckets[i];
-    while (cursor != NULL)
-    {
-      cursor = entry_destroy(cursor);
+    while (cursor != NULL) {
+      cursor = entry_destroy(cursor, ht->remove_key_fn, ht->remove_value_fn);
     }
   }
   free(ht->buckets);
   free(ht);
 }
 
-void ioopm_hash_table_insert(ioopm_hash_table_t *ht, elem_t key, elem_t value)
-{
+void ioopm_hash_table_insert(ioopm_hash_table_t *ht, elem_t key, elem_t value) {
   entry_t **entry = find_entry_for_key(ht, key);
 
-  if ((*entry) != NULL)
-  {
+  if ((*entry) != NULL) {
     (*entry)->value = value;
-  }
-  else
-  {
+  } else {
     (*entry) = entry_create(key, value, NULL);
   }
 }
 
-bool ioopm_hash_table_lookup(ioopm_hash_table_t *ht, elem_t key, elem_t *result)
-{
+bool ioopm_hash_table_lookup(ioopm_hash_table_t *ht, elem_t key,
+                             elem_t *result) {
   entry_t **entry = find_entry_for_key(ht, key);
 
-  if ((*entry) == NULL)
-  {
+  if ((*entry) == NULL) {
     return false;
   }
 
@@ -69,60 +66,50 @@ bool ioopm_hash_table_lookup(ioopm_hash_table_t *ht, elem_t key, elem_t *result)
   return true;
 }
 
-bool ioopm_hash_table_remove(ioopm_hash_table_t *ht, elem_t key, elem_t *result)
-{
+bool ioopm_hash_table_remove(ioopm_hash_table_t *ht, elem_t key,
+                             elem_t *result) {
   entry_t **entry = find_entry_for_key(ht, key);
-  if ((*entry) == NULL)
-  {
+  if ((*entry) == NULL) {
     return false;
   }
 
   *result = (*entry)->value;
-  (*entry) = entry_destroy(*entry);
+  (*entry) = entry_destroy(*entry, ht->remove_key_fn, ht->remove_value_fn);
   return true;
 }
 
-bool ioopm_hash_table_has_key(ioopm_hash_table_t *ht, elem_t key)
-{
+bool ioopm_hash_table_has_key(ioopm_hash_table_t *ht, elem_t key) {
   elem_t _;
   return ioopm_hash_table_lookup(ht, key, &_);
 }
 
-size_t ioopm_hash_table_size(ioopm_hash_table_t *ht)
-{
+size_t ioopm_hash_table_size(ioopm_hash_table_t *ht) {
   size_t size = 0;
-  for (size_t i = 0; i < BUCKET_COUNT; i++)
-  {
+  for (size_t i = 0; i < BUCKET_COUNT; i++) {
     size += bucket_size(ht->buckets[i]);
   }
   return size;
 }
 
-bool ioopm_hash_table_is_empty(ioopm_hash_table_t *ht)
-{
-  for (size_t i = 0; i < BUCKET_COUNT; i++)
-  {
-    if (ht->buckets[i] != NULL)
-    {
+bool ioopm_hash_table_is_empty(ioopm_hash_table_t *ht) {
+  for (size_t i = 0; i < BUCKET_COUNT; i++) {
+    if (ht->buckets[i] != NULL) {
       return false;
     }
   }
   return true;
 }
 
-static size_t bucket_size(entry_t *entry)
-{
+static size_t bucket_size(entry_t *entry) {
   size_t size = 0;
-  while (entry != NULL)
-  {
+  while (entry != NULL) {
     size++;
     entry = entry->next;
   }
   return size;
 }
 
-static entry_t *entry_create(elem_t key, elem_t value, entry_t *next)
-{
+static entry_t *entry_create(elem_t key, elem_t value, entry_t *next) {
   entry_t *entry = malloc(sizeof(entry_t));
   entry->key = key;
   entry->value = value;
@@ -132,25 +119,28 @@ static entry_t *entry_create(elem_t key, elem_t value, entry_t *next)
 }
 
 // destroys the entry and returns its next pointer
-static entry_t *entry_destroy(entry_t *entry)
-{
+static entry_t *entry_destroy(entry_t *entry, ioopm_remove_key_fn *rm_key,
+                              ioopm_remove_value_fn *rm_value) {
   entry_t *next = entry->next;
+  if (rm_key) {
+    rm_key(entry->key);
+  }
+  if (rm_value) {
+    rm_value(entry->value);
+  }
   free(entry);
   return next;
 }
 
-static entry_t **find_entry_for_key(ioopm_hash_table_t *ht, elem_t key)
-{
+static entry_t **find_entry_for_key(ioopm_hash_table_t *ht, elem_t key) {
   // find bucket
   size_t bucket = ht->hash_fn(key) % BUCKET_COUNT;
 
   entry_t **current = &ht->buckets[bucket];
 
-  while (*current != NULL)
-  {
+  while (*current != NULL) {
     // if we find a mathing key break
-    if (ht->key_eq_fn(key, (*current)->key))
-    {
+    if (ht->key_eq_fn(key, (*current)->key)) {
       break;
     }
     current = &(*current)->next;

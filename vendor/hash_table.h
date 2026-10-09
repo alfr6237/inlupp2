@@ -22,8 +22,9 @@
 /// @param hash_fn hash_function to hash the keys in the hash table
 /// @param key_eql_fn fucntion to check for equality betwen keys
 /// @return A new empty hash table
-ioopm_hash_table_t *ioopm_hash_table_create(ioopm_hash_function *hash_fn,
-                                            ioopm_eq_function *key_eq_fn);
+ioopm_hash_table_t *ioopm_hash_table_create(
+    ioopm_hash_function *hash_fn, ioopm_eq_function *key_eq_fn,
+    ioopm_remove_key_fn *remove_key_fn, ioopm_remove_value_fn *remove_value_fn);
 
 /// @brief Delete a hash table and free its memory
 /// @param ht a hash table to be deleted
