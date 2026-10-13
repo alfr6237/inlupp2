@@ -30,8 +30,9 @@ $(BUILD_DIR)/backend_test: $(BUILD_DIR)/test/backend.o $(BACKEND_O) $(VENDOR_O)
 backend_test: $(BUILD_DIR)/backend_test
 	./$<
 
-profile_backend: 
-
+# skapa wildcard-regel för valgrind: valgrind_%?
+valgrind_backend: $(BUILD_DIR)/backend_test
+	valgrind ./$<
 
 clean:
 	rm -rf $(BUILD_DIR)

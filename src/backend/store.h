@@ -16,7 +16,12 @@ enum replenish_result
   MERCH_NOT_FOUND
 };
 
-// typedef enum replenish_result replenish_result_t;
+typedef enum replenish_result replenish_result_t;
+
+typedef struct shelf_storage {
+  const char *merch_name;
+  size_t quantity;
+} shelf_storage_t;
 
 typedef struct store ioopm_store_t;
 typedef struct shelf ioopm_shelf_t;
@@ -61,3 +66,7 @@ void ioopm_store_edit_merch_desc(ioopm_store_t *store, const char *merch_name,
                                  const char *new_desc);
 void ioopm_store_edit_price(ioopm_store_t *store, const char *merch_name,
                             size_t new_price);
+
+bool ioopm_get_shelf_storage(ioopm_store_t *store,
+                             const ioopm_shelf_t shelf,
+                             shelf_storage_t *shelf_storage);

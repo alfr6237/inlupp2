@@ -37,6 +37,54 @@ void test_add_remove_merch(void) {
   ioopm_store_destroy(store);
 }
 
+void test_replenish_merch_not_found(void)
+{
+  ioopm_store_t *store = ioopm_store_create();
+
+  ioopm_shelf_t shelf = {.c = 'A', .n = 42};
+
+  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), MERCH_NOT_FOUND);
+
+  ioopm_store_destroy(store);
+}
+
+void test_replenish_merch_conflict(void)
+{
+  ioopm_store_t *store = ioopm_store_create();
+
+  ioopm_shelf_t shelf = {.c = 'A', .n = 42};
+
+  ioopm_store_add_merch(store, "hej", "h", 12);
+  ioopm_store_add_merch(store, "då", "d", 113);
+
+  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), SUCESS);
+  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "då", shelf, 53), MERCH_CONFLICT);
+
+  ioopm_store_destroy(store);
+}
+
+void test_replenish_many(void)
+{
+  ioopm_store_t *store = ioopm_store_create();
+
+  ioopm_shelf_t shelf = {.c = 'A', .n = 42};
+  ioopm_store_add_merch(store, "hej", "h", 12);
+
+  shelf_storage_t storage;
+
+  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), SUCESS);
+  CU_ASSERT_TRUE(ioopm_get_shelf_storage(store, shelf, &storage));
+  CU_ASSERT_TRUE(!strcmp(storage.merch_name, "hej"));
+  CU_ASSERT_EQUAL(storage.quantity, 53);
+
+  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), SUCESS);
+  CU_ASSERT_TRUE(ioopm_get_shelf_storage(store, shelf, &storage));
+  CU_ASSERT_TRUE(!strcmp(storage.merch_name, "hej"));
+  CU_ASSERT_EQUAL(storage.quantity, 106);
+
+  ioopm_store_destroy(store);
+}
+
 int init_suite(void) {
   // Change this function if you want to do something *before* you
   // run a test suite
@@ -70,6 +118,12 @@ int main(void) {
        NULL) ||
       (CU_add_test(backend_test_suite, "Add/remove merch to/from store",
                    test_add_remove_merch) == NULL) ||
+      (CU_add_test(backend_test_suite, "Replenish merch not found",
+                   test_replenish_merch_not_found) == NULL) ||
+      (CU_add_test(backend_test_suite, "Replenish shelf occupied by other merch",
+                   test_replenish_merch_conflict) == NULL) ||
+      (CU_add_test(backend_test_suite, "Replenish same merch and shelf",
+                   test_replenish_many) == NULL) ||
       0) {
     // If adding any of the tests fails, we tear down CUnit and exit
     CU_cleanup_registry();

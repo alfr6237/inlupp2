@@ -5,11 +5,6 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct shelf_storage {
-  size_t merch_id;
-  size_t quantity;
-} shelf_storage_t;
-
 static bool shelf_eql_fn(elem_t a, elem_t b);
 
 static size_t string_hash_function(elem_t key);
@@ -97,13 +92,14 @@ bool ioopm_store_add_merch(ioopm_store_t *store, char *name, char *desc, int pri
 
 // returns false if there exist other type of merch on the specified shelf or
 // quantity is 0
-enum replenish_result (ioopm_store_t *store, const char *merch_name,
+replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store, const char *merch_name,
                                  const ioopm_shelf_t shelf, size_t quantity)
 {
+  assert(quantity != 0);
   elem_t m_id = size_elem(0);
   bool merch_found = ioopm_hash_table_lookup(store->merch_ids, str_elem(merch_name), &m_id);
 
-  if(merch_found)
+  if(!merch_found)
   {
     return MERCH_NOT_FOUND;
   }
@@ -119,7 +115,7 @@ enum replenish_result (ioopm_store_t *store, const char *merch_name,
     assert(ioopm_hash_table_lookup(store->shelfs, s_id, &shelf_elem));
     shelf_storage = shelf_elem.p;
 
-    if(shelf_storage->merch_id != m_id.sz)
+    if(strcmp(shelf_storage->merch_name, merch_name) != 0)
     {
       return MERCH_CONFLICT;
     }
@@ -133,7 +129,11 @@ enum replenish_result (ioopm_store_t *store, const char *merch_name,
     ioopm_hash_table_insert(store->shelf_ids, ptr_elem(shelf_ptr), s_id);
     
     shelf_storage = calloc(sizeof(shelf_storage_t), 1);
-    shelf_storage->merch_id = m_id.sz;
+    
+    elem_t merch;
+    assert(ioopm_hash_table_lookup(store->merch, m_id, &merch));
+
+    shelf_storage->merch_name = ((ioopm_merch_t *) merch.p)->name;
     shelf_storage->quantity = 0;
 
     ioopm_hash_table_insert(store->shelfs, s_id, ptr_elem(shelf_storage));
@@ -175,6 +175,24 @@ void ioopm_store_edit_price(ioopm_store_t *store, const char *merch_name,
                             size_t new_price)
 {
 
+}
+
+bool ioopm_get_shelf_storage(ioopm_store_t *store,
+                             const ioopm_shelf_t shelf,
+                             shelf_storage_t *shelf_storage)
+{
+  elem_t id;
+  if(!ioopm_hash_table_lookup(store->shelf_ids, ptr_elem(&shelf), &id))
+  {
+    return false;
+  }
+  
+  elem_t shelf_strg;
+  assert(ioopm_hash_table_lookup(store->shelfs, id, &shelf_strg));
+
+  memcpy(shelf_storage, shelf_strg.p, sizeof(shelf_storage_t));
+
+  return true;
 }
 
 static bool string_eq_function(elem_t a, elem_t b) {
