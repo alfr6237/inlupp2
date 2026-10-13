@@ -1,12 +1,22 @@
 #pragma once
 #include "../../vendor/hash_table.h"
 #include "merch.h"
+#include <stddef.h>
 
 /// struct for location includeing quantity and merch instance
 
 /// 4 hash tables
 
 /// hash / eql fn for merch and hylla
+
+enum replenish_result
+{
+  SUCESS = 0,
+  MERCH_CONFLICT,
+  MERCH_NOT_FOUND
+};
+
+// typedef enum replenish_result replenish_result_t;
 
 typedef struct store ioopm_store_t;
 typedef struct shelf ioopm_shelf_t;
@@ -22,6 +32,8 @@ struct store {
 
   ioopm_hash_table_t *shelfs; // shelf_id to shelf_storage
   ioopm_hash_table_t *merch;  // merch_id to merch
+  
+  size_t current_id;
 };
 
 ioopm_store_t *ioopm_store_create();
@@ -29,17 +41,17 @@ void ioopm_store_destroy(ioopm_store_t *store);
 
 bool ioopm_merch_exists(ioopm_store_t *store, const char *merch_name);
 
-void ioopm_store_add_merch(ioopm_store_t *store, ioopm_merch_t *merch);
+bool ioopm_store_add_merch(ioopm_store_t *store, char *name, char *desc, int price);
 
 ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
                                      const char *merch_name);
 
 // returns false if there exist other type of merch on the specified shelf or
 // quantity is 0
-bool ioopm_store_replenish_merch(ioopm_store_t *store, const char *merch_name,
+replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store, const char *merch_name,
                                  const ioopm_shelf_t shelf, size_t quantity);
 
-void ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name);
+bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name);
 
 void ioopm_store_edit_merch_name(ioopm_store_t *store,
                                  const char *old_merch_name,

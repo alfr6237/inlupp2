@@ -139,7 +139,7 @@ static entry_t **find_entry_for_key(ioopm_hash_table_t *ht, elem_t key) {
   entry_t **current = &ht->buckets[bucket];
 
   while (*current != NULL) {
-    // if we find a mathing key break
+    // if we find a matching key break
     if (ht->key_eq_fn(key, (*current)->key)) {
       break;
     }

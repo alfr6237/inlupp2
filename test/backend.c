@@ -23,19 +23,16 @@ void test_add_remove_merch(void) {
 
   ioopm_store_t *store = ioopm_store_create();
 
-  ioopm_merch_t *m = ioopm_merch_create("hej", "h", 12);
-
-  ioopm_store_add_merch(store, m);
+  ioopm_store_add_merch(store, "hej", "h", 12);
   ioopm_merch_t *mer = ioopm_store_get_merch(store, "hej");
 
-  CU_ASSERT(strcmp(m->name, mer->name) == 0);
-  CU_ASSERT(strcmp(m->desc, mer->desc) == 0);
-  CU_ASSERT_EQUAL(m->price, mer->price);
+  CU_ASSERT(strcmp("hej", mer->name) == 0);
+  CU_ASSERT(strcmp("h", mer->desc) == 0);
+  CU_ASSERT_EQUAL(12, mer->price);
 
-  ioopm_store_remove_merch(store, m->name);
+  ioopm_store_remove_merch(store, "hej");
 
   CU_ASSERT_PTR_NULL(ioopm_store_get_merch(store, "hej"));
-  ioopm_merch_destroy(m);
 
   ioopm_store_destroy(store);
 }

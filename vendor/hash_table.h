@@ -20,7 +20,9 @@
 
 /// @brief Create a new hash table
 /// @param hash_fn hash_function to hash the keys in the hash table
-/// @param key_eql_fn fucntion to check for equality betwen keys
+/// @param key_eql_fn function to check for equality betwen keys
+/// @param remove_key_fn function to remove keys
+/// @param remove_value_fn function to remove values
 /// @return A new empty hash table
 ioopm_hash_table_t *ioopm_hash_table_create(
     ioopm_hash_function *hash_fn, ioopm_eq_function *key_eq_fn,
