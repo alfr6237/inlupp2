@@ -1,9 +1,9 @@
 #include "store.h"
 #include "./merch.h"
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 static bool shelf_eql_fn(elem_t a, elem_t b);
 
@@ -14,13 +14,12 @@ static size_t shelf_hash_fn(elem_t shelf);
 static bool size_t_eql_fn(elem_t a, elem_t b);
 static size_t size_t_hash_fn(elem_t s);
 
-static void remove_string(elem_t string);
-static void remove_shelf_key(elem_t shelf);
+// static void remove_string(elem_t string);
 
 static void remove_merch_value(elem_t merch);
 static void remove_any_elem(elem_t elem);
 
-ioopm_store_t *ioopm_store_create() {
+ioopm_store_t *ioopm_store_create(void) {
   ioopm_store_t *store = calloc(sizeof(ioopm_store_t), 1);
 
   store->merch_ids = ioopm_hash_table_create(string_hash_function,
@@ -47,19 +46,20 @@ void ioopm_store_destroy(ioopm_store_t *store) {
 }
 
 bool ioopm_merch_exists(ioopm_store_t *store, const char *merch_name) {
+  (void)store;
+  (void)merch_name;
   return false;
 }
 
-//kanske olika fkn sviter för de olika ht:na i store? återanvändning?
-// högre nivå för check? lär vara bra, slipper standard outputs
+// kanske olika fkn sviter för de olika ht:na i store? återanvändning?
+//  högre nivå för check? lär vara bra, slipper standard outputs
 ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
-                                     const char *merch_name)
-{
+                                     const char *merch_name) {
   elem_t m_id = size_elem(0);
-  bool merch_found = ioopm_hash_table_lookup(store->merch_ids, str_elem(merch_name), &m_id);
+  bool merch_found =
+      ioopm_hash_table_lookup(store->merch_ids, c_str_elem(merch_name), &m_id);
 
-  if (merch_found)
-  {
+  if (merch_found) {
     elem_t merch_gotten = ptr_elem(NULL);
     assert(ioopm_hash_table_lookup(store->merch, m_id, &merch_gotten));
     return merch_gotten.p;
@@ -69,13 +69,13 @@ ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
 }
 
 // TODO: When do we check if merch name is ok to add, no dup? static?
-bool ioopm_store_add_merch(ioopm_store_t *store, char *name, char *desc, int price) 
-{  
+bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
+                           const char *desc, int price) {
   elem_t m_id = size_elem(0);
-  bool merch_found = ioopm_hash_table_lookup(store->merch_ids, str_elem(name), &m_id);
+  bool merch_found =
+      ioopm_hash_table_lookup(store->merch_ids, c_str_elem(name), &m_id);
 
-  if(merch_found)
-  {
+  if (merch_found) {
     return false;
   }
 
@@ -83,7 +83,8 @@ bool ioopm_store_add_merch(ioopm_store_t *store, char *name, char *desc, int pri
 
   size_t merch_id = store->current_id++;
 
-  ioopm_hash_table_insert(store->merch_ids, str_elem(merch->name), size_elem(merch_id));
+  ioopm_hash_table_insert(store->merch_ids, str_elem(merch->name),
+                          size_elem(merch_id));
 
   ioopm_hash_table_insert(store->merch, size_elem(merch_id), ptr_elem(merch));
 
@@ -92,48 +93,46 @@ bool ioopm_store_add_merch(ioopm_store_t *store, char *name, char *desc, int pri
 
 // returns false if there exist other type of merch on the specified shelf or
 // quantity is 0
-replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store, const char *merch_name,
-                                 const ioopm_shelf_t shelf, size_t quantity)
-{
+replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
+                                               const char *merch_name,
+                                               const ioopm_shelf_t shelf,
+                                               size_t quantity) {
   assert(quantity != 0);
   elem_t m_id = size_elem(0);
-  bool merch_found = ioopm_hash_table_lookup(store->merch_ids, str_elem(merch_name), &m_id);
+  bool merch_found = ioopm_hash_table_lookup(
+      store->merch_ids, str_elem((char *)merch_name), &m_id);
 
-  if(!merch_found)
-  {
-    return MERCH_NOT_FOUND;
+  if (!merch_found) {
+    return (replenish_result_t){.is_ok = false, .error = MERCH_NOT_FOUND};
   }
 
   elem_t s_id = size_elem(0);
-  bool shelf_found = ioopm_hash_table_lookup(store->shelf_ids, ptr_elem(&shelf), &s_id);
+  bool shelf_found = ioopm_hash_table_lookup(
+      store->shelf_ids, ptr_elem((ioopm_shelf_t *)&shelf), &s_id);
 
   shelf_storage_t *shelf_storage;
 
-  if(shelf_found)
-  {
+  if (shelf_found) {
     elem_t shelf_elem;
     assert(ioopm_hash_table_lookup(store->shelfs, s_id, &shelf_elem));
     shelf_storage = shelf_elem.p;
 
-    if(strcmp(shelf_storage->merch_name, merch_name) != 0)
-    {
-      return MERCH_CONFLICT;
+    if (strcmp(shelf_storage->merch_name, merch_name) != 0) {
+      return (replenish_result_t){.is_ok = false, .error = MERCH_CONFLICT};
     }
-  }
-  else
-  {
+  } else {
     ioopm_shelf_t *shelf_ptr = calloc(sizeof(ioopm_shelf_t), 1);
     s_id.sz = store->current_id++;
     memcpy(shelf_ptr, &shelf, sizeof(ioopm_shelf_t));
 
     ioopm_hash_table_insert(store->shelf_ids, ptr_elem(shelf_ptr), s_id);
-    
+
     shelf_storage = calloc(sizeof(shelf_storage_t), 1);
-    
+
     elem_t merch;
     assert(ioopm_hash_table_lookup(store->merch, m_id, &merch));
 
-    shelf_storage->merch_name = ((ioopm_merch_t *) merch.p)->name;
+    shelf_storage->merch_name = ((ioopm_merch_t *)merch.p)->name;
     shelf_storage->quantity = 0;
 
     ioopm_hash_table_insert(store->shelfs, s_id, ptr_elem(shelf_storage));
@@ -141,18 +140,18 @@ replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store, const char 
 
   shelf_storage->quantity += quantity;
 
-  return SUCESS;
+  return (replenish_result_t){.is_ok = true};
 }
 
-// TODO: When is name check for existence done? prolly not this lvl, kanske static?
-// PRE: should not be ran before merchandise has been removed from all shelves
-bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) 
-{
-  elem_t m_id = int_elem(-1); //initialization?
-  bool merch_found = ioopm_hash_table_remove(store->merch_ids, str_elem(merch_name), &m_id);
+// TODO: When is name check for existence done? prolly not this lvl, kanske
+// static? PRE: should not be ran before merchandise has been removed from all
+// shelves
+bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) {
+  elem_t m_id = int_elem(-1); // initialization?
+  bool merch_found =
+      ioopm_hash_table_remove(store->merch_ids, c_str_elem(merch_name), &m_id);
 
-  if(!merch_found)
-  {
+  if (!merch_found) {
     return false;
   }
   elem_t _;
@@ -163,36 +162,40 @@ bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name)
 
 void ioopm_store_edit_merch_name(ioopm_store_t *store,
                                  const char *old_merch_name,
-                                 const char *new_merch_name);
+                                 const char *new_merch_name) {
+  (void)store;
+  (void)old_merch_name;
+  (void)new_merch_name;
+}
 
 void ioopm_store_edit_merch_desc(ioopm_store_t *store, const char *merch_name,
-                                 const char *new_desc)
-{
-
+                                 const char *new_desc) {
+  (void)store;
+  (void)merch_name;
+  (void)new_desc;
 }
 
 void ioopm_store_edit_price(ioopm_store_t *store, const char *merch_name,
-                            size_t new_price)
-{
-
+                            size_t new_price) {
+  (void)store;
+  (void)merch_name;
+  (void)new_price;
 }
 
-bool ioopm_get_shelf_storage(ioopm_store_t *store,
-                             const ioopm_shelf_t shelf,
-                             shelf_storage_t *shelf_storage)
-{
+get_shelf_storage_result_t ioopm_get_shelf_storage(ioopm_store_t *store,
+                                                   const ioopm_shelf_t shelf) {
   elem_t id;
-  if(!ioopm_hash_table_lookup(store->shelf_ids, ptr_elem(&shelf), &id))
-  {
-    return false;
+  if (!ioopm_hash_table_lookup(store->shelf_ids, c_ptr_elem(&shelf), &id)) {
+    return (get_shelf_storage_result_t){.is_ok = false, .error = NOT_FOUND};
   }
-  
-  elem_t shelf_strg;
-  assert(ioopm_hash_table_lookup(store->shelfs, id, &shelf_strg));
 
-  memcpy(shelf_storage, shelf_strg.p, sizeof(shelf_storage_t));
+  elem_t shelf_storage;
+  assert(ioopm_hash_table_lookup(store->shelfs, id, &shelf_storage));
 
-  return true;
+  get_shelf_storage_result_t result = {.is_ok = true};
+  memcpy(&result.value, shelf_storage.cp, sizeof(shelf_storage_t));
+
+  return result;
 }
 
 static bool string_eq_function(elem_t a, elem_t b) {
@@ -200,7 +203,7 @@ static bool string_eq_function(elem_t a, elem_t b) {
 }
 
 static size_t string_hash_function(elem_t key) {
-  char *str = key.s;
+  const char *str = key.cs;
 
   size_t result = 0;
   while (*str != '\0') {
@@ -212,7 +215,7 @@ static size_t string_hash_function(elem_t key) {
 
 static bool shelf_eql_fn(elem_t a, elem_t b) {
   ioopm_shelf_t *shelf_a = (ioopm_shelf_t *)a.p;
-  ioopm_shelf_t *shelf_b = (ioopm_shelf_t *)a.p;
+  ioopm_shelf_t *shelf_b = (ioopm_shelf_t *)b.p;
 
   return shelf_a->c == shelf_b->c && shelf_a->n == shelf_b->n;
 }
@@ -226,7 +229,7 @@ static size_t shelf_hash_fn(elem_t shelf) {
 static bool size_t_eql_fn(elem_t a, elem_t b) { return a.sz == b.sz; }
 static size_t size_t_hash_fn(elem_t s) { return s.sz; }
 
-static void remove_string(elem_t string) { free(string.s); }
+// static void remove_string(elem_t string) { free(string.s); }
 static void remove_any_elem(elem_t elem) { free(elem.p); }
 
 static void remove_merch_value(elem_t merch) { ioopm_merch_destroy(merch.p); }

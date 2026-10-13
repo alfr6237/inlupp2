@@ -1,6 +1,7 @@
 #pragma once
 #include "../../vendor/hash_table.h"
 #include "merch.h"
+#include "result.h"
 #include <stddef.h>
 
 /// struct for location includeing quantity and merch instance
@@ -9,14 +10,14 @@
 
 /// hash / eql fn for merch and hylla
 
-enum replenish_result
-{
-  SUCESS = 0,
+typedef enum replenish_error {
   MERCH_CONFLICT,
   MERCH_NOT_FOUND
-};
+} replenish_error_t;
 
-typedef enum replenish_result replenish_result_t;
+typedef RESULT_VOID(replenish_error_t) replenish_result_t;
+
+typedef enum get_error { NOT_FOUND } get_error_t;
 
 typedef struct shelf_storage {
   const char *merch_name;
@@ -25,6 +26,8 @@ typedef struct shelf_storage {
 
 typedef struct store ioopm_store_t;
 typedef struct shelf ioopm_shelf_t;
+
+typedef RESULT(shelf_storage_t, get_error_t) get_shelf_storage_result_t;
 
 struct shelf {
   char c;
@@ -37,24 +40,27 @@ struct store {
 
   ioopm_hash_table_t *shelfs; // shelf_id to shelf_storage
   ioopm_hash_table_t *merch;  // merch_id to merch
-  
+
   size_t current_id;
 };
 
-ioopm_store_t *ioopm_store_create();
+ioopm_store_t *ioopm_store_create(void);
 void ioopm_store_destroy(ioopm_store_t *store);
 
 bool ioopm_merch_exists(ioopm_store_t *store, const char *merch_name);
 
-bool ioopm_store_add_merch(ioopm_store_t *store, char *name, char *desc, int price);
+bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
+                           const char *desc, int price);
 
 ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
                                      const char *merch_name);
 
 // returns false if there exist other type of merch on the specified shelf or
 // quantity is 0
-replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store, const char *merch_name,
-                                 const ioopm_shelf_t shelf, size_t quantity);
+replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
+                                               const char *merch_name,
+                                               const ioopm_shelf_t shelf,
+                                               size_t quantity);
 
 bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name);
 
@@ -67,6 +73,5 @@ void ioopm_store_edit_merch_desc(ioopm_store_t *store, const char *merch_name,
 void ioopm_store_edit_price(ioopm_store_t *store, const char *merch_name,
                             size_t new_price);
 
-bool ioopm_get_shelf_storage(ioopm_store_t *store,
-                             const ioopm_shelf_t shelf,
-                             shelf_storage_t *shelf_storage);
+get_shelf_storage_result_t ioopm_get_shelf_storage(ioopm_store_t *store,
+                                                   const ioopm_shelf_t shelf);
