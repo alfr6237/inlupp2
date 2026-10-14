@@ -37,19 +37,21 @@ void test_add_remove_merch(void) {
   ioopm_store_destroy(store);
 }
 
-void test_replenish_merch_not_found(void)
-{
+void test_replenish_merch_not_found(void) {
   ioopm_store_t *store = ioopm_store_create();
 
   ioopm_shelf_t shelf = {.c = 'A', .n = 42};
 
-  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), MERCH_NOT_FOUND);
+  const replenish_result_t result =
+      ioopm_store_replenish_merch(store, "hej", shelf, 53);
+
+  CU_ASSERT_FALSE(result.is_ok)
+  CU_ASSERT_EQUAL(result.error, MERCH_NOT_FOUND);
 
   ioopm_store_destroy(store);
 }
 
-void test_replenish_merch_conflict(void)
-{
+void test_replenish_merch_conflict(void) {
   ioopm_store_t *store = ioopm_store_create();
 
   ioopm_shelf_t shelf = {.c = 'A', .n = 42};
@@ -57,28 +59,40 @@ void test_replenish_merch_conflict(void)
   ioopm_store_add_merch(store, "hej", "h", 12);
   ioopm_store_add_merch(store, "då", "d", 113);
 
-  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), SUCESS);
-  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "då", shelf, 53), MERCH_CONFLICT);
+  replenish_result_t result =
+      ioopm_store_replenish_merch(store, "hej", shelf, 53);
+  CU_ASSERT_TRUE(result.is_ok);
+  result = ioopm_store_replenish_merch(store, "då", shelf, 53);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_EQUAL(result.error, MERCH_CONFLICT);
 
   ioopm_store_destroy(store);
 }
 
-void test_replenish_many(void)
-{
+void test_replenish_many(void) {
   ioopm_store_t *store = ioopm_store_create();
 
   ioopm_shelf_t shelf = {.c = 'A', .n = 42};
   ioopm_store_add_merch(store, "hej", "h", 12);
 
-  shelf_storage_t storage;
+  replenish_result_t rep_result =
+      ioopm_store_replenish_merch(store, "hej", shelf, 53);
 
-  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), SUCESS);
-  CU_ASSERT_TRUE(ioopm_get_shelf_storage(store, shelf, &storage));
+  CU_ASSERT_TRUE(rep_result.is_ok);
+
+  get_shelf_storage_result_t get_result = ioopm_get_shelf_storage(store, shelf);
+  shelf_storage_t storage = get_result.value;
+
+  CU_ASSERT_TRUE(get_result.is_ok);
   CU_ASSERT_TRUE(!strcmp(storage.merch_name, "hej"));
   CU_ASSERT_EQUAL(storage.quantity, 53);
 
-  CU_ASSERT_EQUAL(ioopm_store_replenish_merch(store, "hej", shelf, 53), SUCESS);
-  CU_ASSERT_TRUE(ioopm_get_shelf_storage(store, shelf, &storage));
+  rep_result = ioopm_store_replenish_merch(store, "hej", shelf, 53);
+
+  CU_ASSERT_TRUE(rep_result.is_ok);
+
+  get_result = ioopm_get_shelf_storage(store, shelf);
+  storage = get_result.value;
   CU_ASSERT_TRUE(!strcmp(storage.merch_name, "hej"));
   CU_ASSERT_EQUAL(storage.quantity, 106);
 
@@ -120,7 +134,8 @@ int main(void) {
                    test_add_remove_merch) == NULL) ||
       (CU_add_test(backend_test_suite, "Replenish merch not found",
                    test_replenish_merch_not_found) == NULL) ||
-      (CU_add_test(backend_test_suite, "Replenish shelf occupied by other merch",
+      (CU_add_test(backend_test_suite,
+                   "Replenish shelf occupied by other merch",
                    test_replenish_merch_conflict) == NULL) ||
       (CU_add_test(backend_test_suite, "Replenish same merch and shelf",
                    test_replenish_many) == NULL) ||
