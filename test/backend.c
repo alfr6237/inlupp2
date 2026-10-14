@@ -81,9 +81,9 @@ void test_replenish_many(void) {
   CU_ASSERT_TRUE(rep_result.is_ok);
 
   get_shelf_storage_result_t get_result = ioopm_get_shelf_storage(store, shelf);
+  CU_ASSERT_TRUE(get_result.is_ok);
   shelf_storage_t storage = get_result.value;
 
-  CU_ASSERT_TRUE(get_result.is_ok);
   CU_ASSERT_TRUE(!strcmp(storage.merch_name, "hej"));
   CU_ASSERT_EQUAL(storage.quantity, 53);
 
@@ -92,6 +92,7 @@ void test_replenish_many(void) {
   CU_ASSERT_TRUE(rep_result.is_ok);
 
   get_result = ioopm_get_shelf_storage(store, shelf);
+  CU_ASSERT_TRUE(get_result.is_ok);
   storage = get_result.value;
   CU_ASSERT_TRUE(!strcmp(storage.merch_name, "hej"));
   CU_ASSERT_EQUAL(storage.quantity, 106);
