@@ -176,8 +176,6 @@ bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) {
 
   // NOTE: Bug introduced
   //
-  // assert(ioopm_hash_table_remove(store->merch_ids, c_str_elem(merch_name),
-  //                                &merch_id));
 
   assert(ioopm_hash_table_remove(store->merch, merch_id, &_));
 
