@@ -20,7 +20,7 @@ static void remove_merch_value(elem_t merch);
 static void remove_any_elem(elem_t elem);
 
 ioopm_store_t *ioopm_store_create(void) {
-  ioopm_store_t *store = calloc(sizeof(ioopm_store_t), 1);
+  ioopm_store_t *store = calloc(1, sizeof(ioopm_store_t));
 
   store->merch_ids = ioopm_hash_table_create(string_hash_function,
                                              string_eq_function, NULL, NULL);
@@ -122,13 +122,13 @@ replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
       return (replenish_result_t){.is_ok = false, .error = MERCH_CONFLICT};
     }
   } else {
-    ioopm_shelf_t *shelf_ptr = calloc(sizeof(ioopm_shelf_t), 1);
+    ioopm_shelf_t *shelf_ptr = calloc(1, sizeof(ioopm_shelf_t));
     s_id.sz = store->current_id++;
     memcpy(shelf_ptr, &shelf, sizeof(ioopm_shelf_t));
 
     ioopm_hash_table_insert(store->shelf_ids, ptr_elem(shelf_ptr), s_id);
 
-    shelf_storage = calloc(sizeof(shelf_storage_t), 1);
+    shelf_storage = calloc(1, sizeof(shelf_storage_t));
 
     elem_t merch;
     assert(ioopm_hash_table_lookup(store->merch, m_id, &merch));
