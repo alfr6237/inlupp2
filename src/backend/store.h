@@ -15,9 +15,11 @@ typedef enum replenish_error {
   MERCH_NOT_FOUND
 } replenish_error_t;
 
-typedef RESULT_VOID(replenish_error_t) replenish_result_t;
+typedef enum edit_error { NEW_NAME_EXIST, OLD_NAME_NOT_FOUND } edit_error_t;
+typedef RESULT_VOID(edit_error_t) edit_result_t;
 
-typedef enum get_error { NOT_FOUND } get_error_t;
+typedef RESULT_VOID(replenish_error_t) replenish_result_t;
+typedef enum serch_error { NOT_FOUND } search_error_t;
 
 typedef struct shelf_storage {
   const char *merch_name;
@@ -27,7 +29,7 @@ typedef struct shelf_storage {
 typedef struct store ioopm_store_t;
 typedef struct shelf ioopm_shelf_t;
 
-typedef RESULT(shelf_storage_t, get_error_t) get_shelf_storage_result_t;
+typedef RESULT(shelf_storage_t, search_error_t) get_shelf_storage_result_t;
 
 struct shelf {
   char c;
@@ -38,8 +40,9 @@ struct store {
   ioopm_hash_table_t *merch_ids; // merch name to merch_id
   ioopm_hash_table_t *shelf_ids; // shelf to shelf_id
 
-  ioopm_hash_table_t *shelfs; // shelf_id to shelf_storage
-  ioopm_hash_table_t *merch;  // merch_id to merch
+  ioopm_hash_table_t *shelfs;    // shelf_id to shelf_storage
+  ioopm_hash_table_t *merch;     // merch_id to merch
+  ioopm_hash_table_t *locations; // merch_id to link list of shelf_id
 
   size_t current_id;
 };
@@ -64,14 +67,9 @@ replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
 
 bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name);
 
-void ioopm_store_edit_merch_name(ioopm_store_t *store,
-                                 const char *old_merch_name,
-                                 const char *new_merch_name);
-
-void ioopm_store_edit_merch_desc(ioopm_store_t *store, const char *merch_name,
-                                 const char *new_desc);
-void ioopm_store_edit_merch_price(ioopm_store_t *store, const char *merch_name,
-                                  size_t new_price);
+edit_result_t ioopm_store_edit_merch(ioopm_store_t *store, const char *old_name,
+                                     const char *new_name, const char *new_desc,
+                                     const size_t new_price);
 
 get_shelf_storage_result_t ioopm_get_shelf_storage(ioopm_store_t *store,
                                                    const ioopm_shelf_t shelf);

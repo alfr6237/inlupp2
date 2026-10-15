@@ -48,6 +48,9 @@ void ioopm_hash_table_insert(ioopm_hash_table_t *ht, elem_t key, elem_t value) {
   entry_t **entry = find_entry_for_key(ht, key);
 
   if ((*entry) != NULL) {
+    if (ht->remove_value_fn) {
+      ht->remove_value_fn((*entry)->value);
+    }
     (*entry)->value = value;
   } else {
     (*entry) = entry_create(key, value, NULL);

@@ -1,0 +1,11 @@
+{
+"tasks": [
+            {
+                "type": "cbuild",
+                "label": "C: gcc build active file",
+                "command": "make",
+                "args": [ "backend_test"]
+            }
+        ],
+        "version": "2.0.0"
+    }
