@@ -53,8 +53,8 @@ bool ioopm_merch_exists(ioopm_store_t *store, const char *merch_name) {
 
 // kanske olika fkn sviter för de olika ht:na i store? återanvändning?
 //  högre nivå för check? lär vara bra, slipper standard outputs
-ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
-                                     const char *merch_name) {
+const ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
+                                           const char *merch_name) {
   elem_t m_id = size_elem(0);
   bool merch_found =
       ioopm_hash_table_lookup(store->merch_ids, c_str_elem(merch_name), &m_id);
@@ -93,6 +93,7 @@ bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
 
 // returns false if there exist other type of merch on the specified shelf or
 // quantity is 0
+// TODO: update location of merch (change to ludvigs list impl)
 replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
                                                const char *merch_name,
                                                const ioopm_shelf_t shelf,
@@ -163,6 +164,7 @@ bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) {
 void ioopm_store_edit_merch_name(ioopm_store_t *store,
                                  const char *old_merch_name,
                                  const char *new_merch_name) {
+
   (void)store;
   (void)old_merch_name;
   (void)new_merch_name;
@@ -175,8 +177,8 @@ void ioopm_store_edit_merch_desc(ioopm_store_t *store, const char *merch_name,
   (void)new_desc;
 }
 
-void ioopm_store_edit_price(ioopm_store_t *store, const char *merch_name,
-                            size_t new_price) {
+void ioopm_store_edit_merch_price(ioopm_store_t *store, const char *merch_name,
+                                  size_t new_price) {
   (void)store;
   (void)merch_name;
   (void)new_price;

@@ -52,8 +52,8 @@ bool ioopm_merch_exists(ioopm_store_t *store, const char *merch_name);
 bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
                            const char *desc, int price);
 
-ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
-                                     const char *merch_name);
+const ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
+                                           const char *merch_name);
 
 // returns false if there exist other type of merch on the specified shelf or
 // quantity is 0
@@ -70,8 +70,8 @@ void ioopm_store_edit_merch_name(ioopm_store_t *store,
 
 void ioopm_store_edit_merch_desc(ioopm_store_t *store, const char *merch_name,
                                  const char *new_desc);
-void ioopm_store_edit_price(ioopm_store_t *store, const char *merch_name,
-                            size_t new_price);
+void ioopm_store_edit_merch_price(ioopm_store_t *store, const char *merch_name,
+                                  size_t new_price);
 
 get_shelf_storage_result_t ioopm_get_shelf_storage(ioopm_store_t *store,
                                                    const ioopm_shelf_t shelf);

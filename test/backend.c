@@ -24,11 +24,11 @@ void test_add_remove_merch(void) {
   ioopm_store_t *store = ioopm_store_create();
 
   ioopm_store_add_merch(store, "hej", "h", 12);
-  ioopm_merch_t *mer = ioopm_store_get_merch(store, "hej");
+  const ioopm_merch_t *merch = ioopm_store_get_merch(store, "hej");
 
-  CU_ASSERT(strcmp("hej", mer->name) == 0);
-  CU_ASSERT(strcmp("h", mer->desc) == 0);
-  CU_ASSERT_EQUAL(12, mer->price);
+  CU_ASSERT(strcmp("hej", merch->name) == 0);
+  CU_ASSERT(strcmp("h", merch->desc) == 0);
+  CU_ASSERT_EQUAL(12, merch->price);
 
   ioopm_store_remove_merch(store, "hej");
 
@@ -100,6 +100,29 @@ void test_replenish_many(void) {
   ioopm_store_destroy(store);
 }
 
+void test_merch_edits(void) {
+  ioopm_store_t *store = ioopm_store_create();
+  ioopm_store_add_merch(store, "hej", "h", 53);
+  const ioopm_merch_t *merch = ioopm_store_get_merch(store, "hej");
+
+  CU_ASSERT_TRUE(strcmp(merch->name, "hej") == 0);
+  CU_ASSERT_TRUE(strcmp(merch->desc, "h") == 0);
+  CU_ASSERT_EQUAL(merch->price, 53);
+
+  ioopm_store_edit_merch_name(store, "hej", "då");
+  CU_ASSERT_PTR_NULL(ioopm_store_get_merch(store, "hej"));
+
+  ioopm_store_edit_merch_desc(store, "då", "k");
+  merch = ioopm_store_get_merch(store, "då");
+  CU_ASSERT_TRUE(strcmp(merch->desc, "k") == 0);
+
+  ioopm_store_edit_merch_price(store, "då", 106);
+  merch = ioopm_store_get_merch(store, "då");
+  CU_ASSERT_EQUAL(merch->price, 106);
+
+  ioopm_store_destroy(store);
+}
+
 int init_suite(void) {
   // Change this function if you want to do something *before* you
   // run a test suite
@@ -140,6 +163,8 @@ int main(void) {
                    test_replenish_merch_conflict) == NULL) ||
       (CU_add_test(backend_test_suite, "Replenish same merch and shelf",
                    test_replenish_many) == NULL) ||
+      (CU_add_test(backend_test_suite, "Edit merch", test_merch_edits) ==
+       NULL) ||
       0) {
     // If adding any of the tests fails, we tear down CUnit and exit
     CU_cleanup_registry();
