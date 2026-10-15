@@ -1,15 +1,26 @@
 #pragma once
+#include <stddef.h>
 #include "common.h"
+
+typedef struct link link_t;
 typedef struct list ioopm_list_t;
-typedef struct node node_t;
-struct list
+
+struct list 
 {
-  node_t *head;
-  node_t *last;
+    link_t *first;
+    link_t *last;   
+    size_t size;
 };
 
-struct node
+struct link
 {
-  elem_t value;
-  node_t *next;
+    elem_t element;
+    link_t *next; 
+};
+
+struct list_iterator
+{
+    ioopm_list_t *list;
+    link_t *current_link;
+    size_t current_index;
 };
