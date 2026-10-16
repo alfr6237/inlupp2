@@ -1,4 +1,5 @@
 #include "store.h"
+#include "../../vendor/linked_list_iterator.h"
 #include "./merch.h"
 #include "result.h"
 #include <assert.h>
@@ -24,13 +25,25 @@ static void remove_any_elem(elem_t elem);
 
 static void remove_list_value(elem_t list);
 
+static void stock_remove_fn(elem_t elem);
+
+// static bool ioopm_get_shelf_storage(const ioopm_store_t *store,
+//                                     const shelf_name_t shelf,
+//                                     shelf_storage_t *storage_out);
+
+static void add_shelf(ioopm_store_t *store, shelf_name_t shelf_name,
+                      size_t merch_id, size_t quantity);
+
+static bool increase_quantity(ioopm_store_t *store, size_t shelf_id,
+                              size_t quantity);
+
 ioopm_store_t *ioopm_store_create(void) {
   ioopm_store_t *store = calloc(1, sizeof(ioopm_store_t));
 
   store->merch_ids = ioopm_hash_table_create(string_hash_function,
                                              string_eq_function, NULL, NULL);
-  store->shelf_ids = ioopm_hash_table_create(shelf_hash_fn, shelf_eql_fn,
-                                             remove_any_elem, NULL);
+  store->shelf_ids =
+      ioopm_hash_table_create(shelf_hash_fn, shelf_eql_fn, NULL, NULL);
   store->merch = ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn, NULL,
                                          remove_merch_value);
   store->shelfs = ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn, NULL,
@@ -94,7 +107,7 @@ bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
   ioopm_hash_table_insert(store->merch_ids, str_elem(merch->name), merch_id);
 
   ioopm_hash_table_insert(store->merch, merch_id, ptr_elem(merch));
-  ioopm_list_t *locations = ioopm_list_create();
+  ioopm_list_t *locations = ioopm_list_create(NULL);
   ioopm_hash_table_insert(store->locations, merch_id, ptr_elem(locations));
 
   return true;
@@ -105,54 +118,29 @@ bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
 // TODO: update location of merch (change to ludvigs list impl)
 replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
                                                const char *merch_name,
-                                               const ioopm_shelf_t shelf,
+                                               const shelf_name_t shelf_name,
                                                size_t quantity) {
   assert(quantity != 0);
-  elem_t merch_id = size_elem(0);
+
+  elem_t merch_id;
   bool merch_found = ioopm_hash_table_lookup(
       store->merch_ids, str_elem((char *)merch_name), &merch_id);
-
   if (!merch_found) {
     return (replenish_result_t){.is_ok = false, .error = MERCH_NOT_FOUND};
   }
 
-  elem_t shelf_id = size_elem(0);
+  elem_t shelf_id;
   bool shelf_found = ioopm_hash_table_lookup(
-      store->shelf_ids, ptr_elem((ioopm_shelf_t *)&shelf), &shelf_id);
-
-  shelf_storage_t *shelf_storage;
+      store->shelf_ids, ptr_elem((shelf_name_t *)&shelf_name), &shelf_id);
 
   if (shelf_found) {
-    elem_t shelf_elem;
-    assert(ioopm_hash_table_lookup(store->shelfs, shelf_id, &shelf_elem));
-    shelf_storage = shelf_elem.p;
-
-    if (strcmp(shelf_storage->merch_name, merch_name) != 0) {
+    // returns false if shelf is already occupied by other merch
+    if (!increase_quantity(store, shelf_id.sz, quantity)) {
       return (replenish_result_t){.is_ok = false, .error = MERCH_CONFLICT};
     }
   } else {
-    ioopm_shelf_t *shelf_ptr = calloc(1, sizeof(ioopm_shelf_t));
-    shelf_id.sz = store->current_id++;
-    memcpy(shelf_ptr, &shelf, sizeof(ioopm_shelf_t));
-
-    ioopm_hash_table_insert(store->shelf_ids, ptr_elem(shelf_ptr), shelf_id);
-
-    shelf_storage = calloc(1, sizeof(shelf_storage_t));
-
-    elem_t merch;
-    assert(ioopm_hash_table_lookup(store->merch, merch_id, &merch));
-
-    shelf_storage->merch_name = ((ioopm_merch_t *)merch.p)->name;
-    shelf_storage->quantity = 0;
-
-    ioopm_hash_table_insert(store->shelfs, shelf_id, ptr_elem(shelf_storage));
+    add_shelf(store, shelf_name, merch_id.sz, quantity);
   }
-
-  shelf_storage->quantity += quantity;
-  elem_t locations;
-  assert(ioopm_hash_table_lookup(store->locations, merch_id, &locations));
-
-  ioopm_list_append(locations.p, shelf_id);
 
   return (replenish_result_t){.is_ok = true};
 }
@@ -174,9 +162,6 @@ bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) {
 
   elem_t _;
 
-  // NOTE: Bug introduced
-  //
-
   assert(ioopm_hash_table_remove(store->merch, merch_id, &_));
 
   return true;
@@ -185,6 +170,7 @@ bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) {
 edit_result_t ioopm_store_edit_merch(ioopm_store_t *store, const char *old_name,
                                      const char *new_name, const char *new_desc,
                                      const size_t new_price) {
+
   if (!ioopm_hash_table_has_key(store->merch_ids, c_str_elem(old_name))) {
     return (edit_result_t){.is_ok = false, .error = OLD_NAME_NOT_FOUND};
   }
@@ -207,21 +193,56 @@ edit_result_t ioopm_store_edit_merch(ioopm_store_t *store, const char *old_name,
   return (edit_result_t){.is_ok = true};
 }
 
-get_shelf_storage_result_t ioopm_get_shelf_storage(ioopm_store_t *store,
-                                                   const ioopm_shelf_t shelf) {
-  elem_t id;
-  if (!ioopm_hash_table_lookup(store->shelf_ids, c_ptr_elem(&shelf), &id)) {
-    return (get_shelf_storage_result_t){.is_ok = false, .error = NOT_FOUND};
+// static bool ioopm_get_shelf_storage(const ioopm_store_t *store,
+//                                     const shelf_name_t shelf,
+//                                     shelf_storage_t *storage_out) {
+//   elem_t id;
+//   if (!ioopm_hash_table_lookup(store->shelf_ids, c_ptr_elem(&shelf), &id)) {
+//     return false;
+//   }
+//
+//   elem_t shelf_storage;
+//   assert(ioopm_hash_table_lookup(store->shelfs, id, &shelf_storage));
+//
+//   memcpy(storage_out, shelf_storage.cp, sizeof(shelf_storage_t));
+//
+//   return true;
+// }
+
+ioopm_list_t *ioopm_store_get_stock(const ioopm_store_t *store,
+                                    const char *merch_name) {
+  elem_t merch_id_elem;
+  if (!ioopm_hash_table_lookup(store->merch_ids, c_str_elem(merch_name),
+                               &merch_id_elem)) {
+    return NULL;
   }
+  elem_t locations_elem;
+  assert(ioopm_hash_table_lookup(store->locations, merch_id_elem,
+                                 &locations_elem));
 
-  elem_t shelf_storage;
-  assert(ioopm_hash_table_lookup(store->shelfs, id, &shelf_storage));
+  ioopm_list_t *stock = ioopm_list_create(stock_remove_fn);
+  ioopm_list_iterator_t *iter = ioopm_list_iterator_create(locations_elem.p);
 
-  get_shelf_storage_result_t result = {.is_ok = true};
-  memcpy(&result.value, shelf_storage.cp, sizeof(shelf_storage_t));
+  while (!ioopm_list_iterator_at_end(iter)) {
+    elem_t shelf_id = ioopm_list_iterator_current(iter);
 
-  return result;
+    elem_t storage_elem;
+    assert(ioopm_hash_table_lookup(store->shelfs, shelf_id, &storage_elem));
+    shelf_storage_t *storage = storage_elem.p;
+
+    shelf_t *shelf = calloc(1, sizeof(shelf_t));
+    *shelf = (shelf_t){.quantity = storage->quantity,
+                       .shelf_name = storage->shelf_name};
+
+    ioopm_list_append(stock, ptr_elem(shelf));
+
+    ioopm_list_iterator_advance(iter);
+  }
+  ioopm_list_iterator_destroy(iter);
+  return stock;
 }
+
+static void stock_remove_fn(elem_t elem) { free(elem.p); }
 
 static bool string_eq_function(elem_t a, elem_t b) {
   return strcmp(a.s, b.s) == 0;
@@ -239,15 +260,15 @@ static size_t string_hash_function(elem_t key) {
 }
 
 static bool shelf_eql_fn(elem_t a, elem_t b) {
-  ioopm_shelf_t *shelf_a = (ioopm_shelf_t *)a.p;
-  ioopm_shelf_t *shelf_b = (ioopm_shelf_t *)b.p;
+  shelf_name_t *shelf_a = (shelf_name_t *)a.p;
+  shelf_name_t *shelf_b = (shelf_name_t *)b.p;
 
   return shelf_a->c == shelf_b->c && shelf_a->n == shelf_b->n;
 }
 
 static size_t shelf_hash_fn(elem_t shelf) {
 
-  ioopm_shelf_t *s = (ioopm_shelf_t *)shelf.p;
+  shelf_name_t *s = (shelf_name_t *)shelf.p;
   return (size_t)s->c + s->n;
 }
 
@@ -260,3 +281,36 @@ static void remove_any_elem(elem_t elem) { free(elem.p); }
 static void remove_merch_value(elem_t merch) { ioopm_merch_destroy(merch.p); }
 
 static void remove_list_value(elem_t list) { ioopm_list_destroy(list.p); }
+
+static void add_shelf(ioopm_store_t *store, shelf_name_t shelf_name,
+                      size_t merch_id, size_t quantity) {
+
+  shelf_storage_t *storage = calloc(1, sizeof(shelf_storage_t));
+  storage->merch_id = merch_id;
+  storage->quantity = quantity;
+  storage->shelf_name = shelf_name;
+
+  elem_t shelf_id = size_elem(store->current_id++);
+  ioopm_hash_table_insert(store->shelfs, shelf_id, ptr_elem(storage));
+
+  ioopm_hash_table_insert(store->shelf_ids, c_ptr_elem(&storage->shelf_name),
+                          shelf_id);
+
+  elem_t locations;
+  assert(ioopm_hash_table_lookup(store->locations, size_elem(merch_id),
+                                 &locations));
+  ioopm_list_append(locations.p, shelf_id);
+}
+
+static bool increase_quantity(ioopm_store_t *store, size_t shelf_id,
+                              size_t quantity) {
+
+  elem_t storage_elem;
+  if (!ioopm_hash_table_lookup(store->shelfs, size_elem(shelf_id),
+                               &storage_elem)) {
+    return false;
+  }
+  shelf_storage_t *storage = storage_elem.p;
+  storage->quantity += quantity;
+  return true;
+}
