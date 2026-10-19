@@ -2,6 +2,7 @@
 #include "../../vendor/linked_list_iterator.h"
 #include "./merch.h"
 #include "result.h"
+#include "shelf.h"
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -125,6 +126,7 @@ replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
   elem_t merch_id;
   bool merch_found = ioopm_hash_table_lookup(
       store->merch_ids, str_elem((char *)merch_name), &merch_id);
+
   if (!merch_found) {
     return (replenish_result_t){.is_ok = false, .error = MERCH_NOT_FOUND};
   }
@@ -133,16 +135,28 @@ replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
   bool shelf_found = ioopm_hash_table_lookup(
       store->shelf_ids, ptr_elem((shelf_name_t *)&shelf_name), &shelf_id);
 
-  if (shelf_found) {
-    // returns false if shelf is already occupied by other merch
-    if (!increase_quantity(store, shelf_id.sz, quantity)) {
-      return (replenish_result_t){.is_ok = false, .error = MERCH_CONFLICT};
-    }
-  } else {
-    add_shelf(store, shelf_name, merch_id.sz, quantity);
+  if (!shelf_found) {
+    shelf_id.sz = store->current_id++;
+
+    shelf_storage_t *storage =
+        create_shelf_storage(shelf_name, merch_id.sz, quantity);
+
+    ioopm_hash_table_insert(store->shelfs, shelf_id, ptr_elem(storage));
+    ioopm_hash_table_insert(store->shelf_ids, ptr_elem(&storage->shelf_name),
+                            shelf_id);
+
+    // NOTE: SEGAFAULT HERE IF REMOVED
+    elem_t locations;
+    assert(ioopm_hash_table_lookup(store->locations, merch_id, &locations));
+    ioopm_list_append(locations.p, shelf_id);
+
+    return (replenish_result_t){.is_ok = true};
   }
 
-  return (replenish_result_t){.is_ok = true};
+  elem_t storage_elem;
+  assert(ioopm_hash_table_lookup(store->shelfs, shelf_id, &storage_elem));
+
+  return replenish_merch(storage_elem.p, merch_id.sz, quantity);
 }
 
 // TODO: When is name check for existence done? prolly not this lvl, kanske

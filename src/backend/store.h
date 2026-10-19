@@ -2,6 +2,7 @@
 #include "../../vendor/hash_table.h"
 #include "merch.h"
 #include "result.h"
+#include "shelf.h"
 #include <stddef.h>
 
 /// struct for location includeing quantity and merch instance
@@ -10,35 +11,35 @@
 
 /// hash / eql fn for merch and hylla
 
-typedef enum replenish_error {
-  MERCH_CONFLICT,
-  MERCH_NOT_FOUND
-} replenish_error_t;
+// typedef enum replenish_error {
+//   MERCH_CONFLICT,
+//   MERCH_NOT_FOUND
+// } replenish_error_t;
 
 typedef enum edit_error { NEW_NAME_EXIST, OLD_NAME_NOT_FOUND } edit_error_t;
 typedef RESULT_VOID(edit_error_t) edit_result_t;
 
-typedef RESULT_VOID(replenish_error_t) replenish_result_t;
+// typedef RESULT_VOID(replenish_error_t) replenish_result_t;
 typedef enum serch_error { NOT_FOUND } search_error_t;
 
 typedef struct store ioopm_store_t;
-typedef struct shelf_name shelf_name_t;
+// typedef struct shelf_name shelf_name_t;
 
-struct shelf_name {
-  char c;
-  size_t n;
-};
-
-typedef struct shelf_storage {
-  shelf_name_t shelf_name;
-  size_t merch_id;
-  size_t quantity;
-} shelf_storage_t;
-
-typedef struct shelf {
-  shelf_name_t shelf_name;
-  size_t quantity;
-} shelf_t;
+// struct shelf_name {
+//   char c;
+//   size_t n;
+// };
+//
+// typedef struct shelf_storage {
+//   shelf_name_t shelf_name;
+//   size_t merch_id;
+//   size_t quantity;
+// } shelf_storage_t;
+//
+// typedef struct shelf {
+//   shelf_name_t shelf_name;
+//   size_t quantity;
+// } shelf_t;
 //
 // typedef struct shelf_stock {
 //   const char *merch_name;

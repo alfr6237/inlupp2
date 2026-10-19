@@ -89,7 +89,7 @@ void test_replenish_merch_conflict(void) {
   CU_ASSERT_TRUE(result.is_ok);
   result = ioopm_store_replenish_merch(store, merch_names[1], shelf_names[0],
                                        quantities[0]);
-  CU_ASSERT_FALSE(!result.is_ok);
+  CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_EQUAL(result.error, MERCH_CONFLICT);
 
   ioopm_store_destroy(store);
