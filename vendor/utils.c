@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool not_empty(char *str) { return strlen(str) > 0; }
+bool not_empty(const char *str) { return strlen(str) > 0; }
 
 void clear_input_buffer(void) {
   int c;
@@ -30,7 +30,8 @@ int read_string(char *buf, int buf_siz) {
   return i;
 }
 
-answer_t ask_question(char *question, check_fn *check, convert_fn *convert) {
+answer_t ask_question(const char *question, check_fn *check,
+                      convert_fn *convert) {
 
   int buffer_size = 255;
   char buffer[buffer_size];
@@ -45,27 +46,31 @@ answer_t ask_question(char *question, check_fn *check, convert_fn *convert) {
   } while (true);
 }
 
-int ask_question_int(char *question) {
+int ask_question_int(const char *question) {
   answer_t answer = ask_question(question, is_number, make_int);
   return answer.int_value;
 }
 
-char *ask_question_string(char *question) {
+char *ask_question_string(const char *question) {
   answer_t answer = ask_question(question, not_empty, make_string);
   return answer.string_value;
 }
 
-double ask_question_float(char *question) {
+double ask_question_float(const char *question) {
   return ask_question(question, is_float, make_float).float_value;
 }
 
-answer_t make_int(char *str) { return (answer_t){.int_value = atoi(str)}; }
-answer_t make_float(char *str) { return (answer_t){.float_value = atof(str)}; }
-answer_t make_string(char *str) {
+answer_t make_int(const char *str) {
+  return (answer_t){.int_value = atoi(str)};
+}
+answer_t make_float(const char *str) {
+  return (answer_t){.float_value = atof(str)};
+}
+answer_t make_string(const char *str) {
   return (answer_t){.string_value = strdup(str)};
 }
 
-bool is_float(char *str) {
+bool is_float(const char *str) {
 
   int len = strlen(str);
   if (!len) {
@@ -89,7 +94,7 @@ bool is_float(char *str) {
 
   return true;
 }
-bool is_number(char *str) {
+bool is_number(const char *str) {
   int len = strlen(str);
   if (!len) {
     return false;

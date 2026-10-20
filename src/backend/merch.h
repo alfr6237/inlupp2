@@ -7,7 +7,6 @@ typedef struct merch ioopm_merch_t;
 struct merch {
   char *name;
   char *desc;
-
   size_t price;
 };
 

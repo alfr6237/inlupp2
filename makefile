@@ -16,21 +16,36 @@ VENDOR_O = $(HT_O) $(LL_O) $(UTILS_O)
 BACKEND_SRC = $(wildcard $(BACKEND_DIR)/*.c)
 BACKEND_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(BACKEND_SRC))
 
-.PHONY: backend backend_test clean
+
+FRONTEND_SRC = $(wildcard $(FRONTEND_DIR)/*.c)
+FRONTEND_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(FRONTEND_SRC))
+
+
+.PHONY: backend backend_test clean frontend
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-backend: $(BACKEND_O) $(VENDOR_O)
+
 
 $(BUILD_DIR)/backend_test: $(BUILD_DIR)/test/backend.o $(BACKEND_O) $(VENDOR_O)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS) $(CUNIT_LIBS)
 
+
 backend_test: $(BUILD_DIR)/backend_test
 	./$<
 
-# skapa wildcard-regel för valgrind: valgrind_%?
+
+$(BUILD_DIR)/frontend: $(BUILD_DIR)/src/frontend/tui.o $(FRONTEND_O) $(VENDOR_O) $(BACKEND_O)
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS) $(CUNIT_LIBS)
+
+frontend_run: $(BUILD_DIR)/frontend
+	./$<
+
+
+
+
 valgrind_backend: $(BUILD_DIR)/backend_test
 	valgrind ./$<
 
