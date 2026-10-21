@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef RESULT(ioopm_merch_t *, search_error_t) get_merch_result_t;
+typedef RESULT(merch_t *, search_error_t) get_merch_result_t;
 
 static bool shelf_eql_fn(elem_t a, elem_t b);
 
@@ -24,16 +24,16 @@ static size_t size_t_hash_fn(elem_t s);
 static void remove_merch_value(elem_t merch);
 static void remove_any_elem(elem_t elem);
 
-static void remove_list_value(elem_t list);
+static void remove_ioopm_list_value(elem_t list);
 
 static void stock_remove_fn(elem_t elem);
 
-// static bool ioopm_get_shelf_storage(const ioopm_store_t *store,
+// static bool get_shelf_storage(const store_t *store,
 //                                     const shelf_name_t shelf,
 //                                     shelf_storage_t *storage_out);
 
-ioopm_store_t *ioopm_store_create(void) {
-  ioopm_store_t *store = calloc(1, sizeof(ioopm_store_t));
+store_t *store_create(void) {
+  store_t *store = calloc(1, sizeof(store_t));
 
   store->merch_ids = ioopm_hash_table_create(string_hash_function,
                                              string_eq_function, NULL, NULL);
@@ -44,13 +44,13 @@ ioopm_store_t *ioopm_store_create(void) {
   store->shelfs = ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn, NULL,
                                           remove_any_elem);
   store->locations = ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn,
-                                             NULL, remove_list_value);
+                                             NULL, remove_ioopm_list_value);
   store->current_id = 0;
 
   return store;
 }
 
-void ioopm_store_destroy(ioopm_store_t *store) {
+void store_destroy(store_t *store) {
 
   ioopm_hash_table_destroy(store->shelfs);
   ioopm_hash_table_destroy(store->merch);
@@ -61,7 +61,7 @@ void ioopm_store_destroy(ioopm_store_t *store) {
   free(store);
 }
 
-bool ioopm_merch_exists(ioopm_store_t *store, const char *merch_name) {
+bool merch_exists(store_t *store, const char *merch_name) {
   (void)store;
   (void)merch_name;
   return false;
@@ -69,8 +69,7 @@ bool ioopm_merch_exists(ioopm_store_t *store, const char *merch_name) {
 
 // kanske olika fkn sviter för de olika ht:na i store? återanvändning?
 //  högre nivå för check? lär vara bra, slipper standard outputs
-const ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
-                                           const char *merch_name) {
+const merch_t *store_get_merch(store_t *store, const char *merch_name) {
   elem_t merch_id = size_elem(0);
   bool merch_found = ioopm_hash_table_lookup(store->merch_ids,
                                              c_str_elem(merch_name), &merch_id);
@@ -85,8 +84,8 @@ const ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
 }
 
 // TODO: When do we check if merch name is ok to add, no dup? static?
-bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
-                           const char *desc, int price) {
+bool store_add_merch(store_t *store, const char *name, const char *desc,
+                     const size_t price) {
   elem_t merch_id = size_elem(0);
   bool merch_found =
       ioopm_hash_table_lookup(store->merch_ids, c_str_elem(name), &merch_id);
@@ -95,7 +94,7 @@ bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
     return false;
   }
 
-  ioopm_merch_t *merch = ioopm_merch_create(name, desc, price);
+  merch_t *merch = merch_create(name, desc, price);
 
   merch_id = size_elem(store->current_id++);
 
@@ -111,10 +110,9 @@ bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
 // returns false if there exist other type of merch on the specified shelf or
 // quantity is 0
 // TODO: update location of merch (change to ludvigs list impl)
-replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
-                                               const char *merch_name,
-                                               const shelf_name_t shelf_name,
-                                               size_t quantity) {
+replenish_result_t store_replenish_merch(store_t *store, const char *merch_name,
+                                         const shelf_name_t shelf_name,
+                                         const size_t quantity) {
   assert(quantity != 0);
 
   elem_t merch_id;
@@ -156,7 +154,7 @@ replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
 // TODO: When is name check for existence done? prolly not this lvl, kanske
 // static? PRE: should not be ran before merchandise has been removed from all
 // shelves
-bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) {
+bool store_remove_merch(store_t *store, const char *merch_name) {
   elem_t merch_id = int_elem(-1); // initialization?
   bool merch_found = ioopm_hash_table_remove(store->merch_ids,
                                              c_str_elem(merch_name), &merch_id);
@@ -175,9 +173,9 @@ bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name) {
   return true;
 }
 
-edit_result_t ioopm_store_edit_merch(ioopm_store_t *store, const char *old_name,
-                                     const char *new_name, const char *new_desc,
-                                     const size_t new_price) {
+edit_result_t store_edit_merch(store_t *store, const char *old_name,
+                               const char *new_name, const char *new_desc,
+                               const size_t new_price) {
 
   if (!ioopm_hash_table_has_key(store->merch_ids, c_str_elem(old_name))) {
     return (edit_result_t){.is_ok = false, .error = OLD_NAME_NOT_FOUND};
@@ -193,7 +191,7 @@ edit_result_t ioopm_store_edit_merch(ioopm_store_t *store, const char *old_name,
   assert(ioopm_hash_table_remove(store->merch_ids, c_str_elem(old_name),
                                  &merch_id));
 
-  ioopm_merch_t *merch = ioopm_merch_create(new_name, new_desc, new_price);
+  merch_t *merch = merch_create(new_name, new_desc, new_price);
 
   ioopm_hash_table_insert(store->merch, merch_id, ptr_elem(merch));
   ioopm_hash_table_insert(store->merch_ids, c_str_elem(new_name), merch_id);
@@ -201,8 +199,7 @@ edit_result_t ioopm_store_edit_merch(ioopm_store_t *store, const char *old_name,
   return (edit_result_t){.is_ok = true};
 }
 
-ioopm_list_t *ioopm_store_get_stock(const ioopm_store_t *store,
-                                    const char *merch_name) {
+ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name) {
   elem_t merch_id_elem;
   if (!ioopm_hash_table_lookup(store->merch_ids, c_str_elem(merch_name),
                                &merch_id_elem)) {
@@ -298,6 +295,6 @@ static size_t size_t_hash_fn(elem_t s) { return s.sz; }
 // static void remove_string(elem_t string) { free(string.s); }
 static void remove_any_elem(elem_t elem) { free(elem.p); }
 
-static void remove_merch_value(elem_t merch) { ioopm_merch_destroy(merch.p); }
+static void remove_merch_value(elem_t merch) { merch_destroy(merch.p); }
 
-static void remove_list_value(elem_t list) { ioopm_list_destroy(list.p); }
+static void remove_ioopm_list_value(elem_t list) { ioopm_list_destroy(list.p); }

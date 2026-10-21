@@ -5,49 +5,18 @@
 #include "shelf.h"
 #include <stddef.h>
 
-/// struct for location includeing quantity and merch instance
-
-/// 4 hash tables
-
-/// hash / eql fn for merch and hylla
-
-// typedef enum replenish_error {
-//   MERCH_CONFLICT,
-//   MERCH_NOT_FOUND
-// } replenish_error_t;
-
 typedef enum edit_error { NEW_NAME_EXIST, OLD_NAME_NOT_FOUND } edit_error_t;
 typedef RESULT_VOID(edit_error_t) edit_result_t;
 
-// typedef RESULT_VOID(replenish_error_t) replenish_result_t;
 typedef enum serch_error { NOT_FOUND } search_error_t;
 
-typedef struct store ioopm_store_t;
-// typedef struct shelf_name shelf_name_t;
-
-// struct shelf_name {
-//   char c;
-//   size_t n;
-// };
-//
-// typedef struct shelf_storage {
-//   shelf_name_t shelf_name;
-//   size_t merch_id;
-//   size_t quantity;
-// } shelf_storage_t;
-//
-// typedef struct shelf {
-//   shelf_name_t shelf_name;
-//   size_t quantity;
-// } shelf_t;
-//
-// typedef struct shelf_stock {
-//   const char *merch_name;
-//   size_t quantity;
-// } shelf_stock_t;
+typedef struct store store_t;
 
 typedef RESULT(shelf_storage_t, search_error_t) get_shelf_storage_result_t;
 
+/// @description store represents the entire backend of the program and is
+/// responsible for coordinating merches shelves and later carts when
+/// implemented.
 struct store {
   ioopm_hash_table_t *merch_ids; // merch name to merch_id
   ioopm_hash_table_t *shelf_ids; // shelf to shelf_id
@@ -59,30 +28,74 @@ struct store {
   size_t current_id;
 };
 
-ioopm_store_t *ioopm_store_create(void);
-void ioopm_store_destroy(ioopm_store_t *store);
+/// @brief creates a store
+/// @return a pointer to a initialized store_t with no merch or shelves
+store_t *store_create(void);
 
-bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
-                           const char *desc, int price);
+/// @brief destroys a store
+/// @param store the store to be destroyed
+void store_destroy(store_t *store);
 
-const ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
-                                           const char *merch_name);
+/// @brief adds a merchandise to the store
+/// @param store the store to operate on
+/// @param name the name of the merchandise
+/// @param desc a description of the merchandise
+/// @param price the price of the merchandise
+/// @return if the merch was successful added
+///
+///
+/// @note this does not add any stock of the merhcendise to any shelf
+/// @note if the merchandise was not successful added there already exists a
+/// merchandise with the same name
+bool store_add_merch(store_t *store, const char *name, const char *desc,
+                     const size_t price);
 
-// returns false if there exist other type of merch on the specified shelf or
-// quantity is 0
-replenish_result_t ioopm_store_replenish_merch(ioopm_store_t *store,
-                                               const char *merch_name,
-                                               const shelf_name_t shelf,
-                                               size_t quantity);
+/// @brief removes merch from the store
+/// @param store the store to operate on
+/// @param merch_name the name of the merch ot be removed
+/// @return if the merch was removed or not
+bool store_remove_merch(store_t *store, const char *merch_name);
 
-bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name);
+/// @brief retrives a pointer to a merch_t in the store given the merchandises
+/// name
+/// @param store the store to operate on
+/// @param merch_name the name of the merchandise
+/// @return the merch coresponding to the merch_name or NULL if merch_name
+/// is not recognized by the store
+const merch_t *store_get_merch(store_t *store, const char *merch_name);
 
-edit_result_t ioopm_store_edit_merch(ioopm_store_t *store, const char *old_name,
-                                     const char *new_name, const char *new_desc,
-                                     const size_t new_price);
+/// @brief adds merch to a shelf
+/// @param store the store to operate on
+/// @param merch_name the name of the merchandise
+/// @param shelf_name name/code of the shelf to replenish on
+/// @param quantity how many of the given merch to add to the given shelf
+/// @return if successful the is_ok field is set to true and the error field
+/// should be ignored, if is_ok is set to false the error field represents what
+/// went wrong
+replenish_result_t store_replenish_merch(store_t *store, const char *merch_name,
+                                         const shelf_name_t shelf_name,
+                                         const size_t quantity);
 
-ioopm_list_t *ioopm_store_get_stock(const ioopm_store_t *store,
-                                    const char *merch_name);
+/// @brief edit a merchandise in the store
+/// @param store the store to operate on
+/// @param current_name the current name of the merchandise so we can find it
+/// @param new_name the new name to give to the merchandise
+/// @param new_desc the new description to give to the merchandise
+/// @param price_desc the new price to give to the merchandise
+/// @return if successful the is_ok field is set to true and the error field
+/// should be ignored, if is_ok is set to false the error field represents what
+/// went wrong
+edit_result_t store_edit_merch(store_t *store, const char *current_name,
+                               const char *new_name, const char *new_desc,
+                               const size_t new_price);
 
-// shelf_t ioopm_store_get_shelf_stock(const ioopm_store_t *store,
-//                                     const shelf_name_t shelf_name);
+/// @brief get the shelf name and how much merch is stored on that shelf for
+/// every shelf that stocks this merch
+/// @param store the store to operate on
+/// @param merch_name the name of the merchandise
+/// @return a linked list of shelf_t* that contains the shelf name and quantity
+/// for every shelf that stocks this merch
+///
+/// @note the caller of this functions owns the returned list and is responsible
+/// for calling ioopm_list_destroy('returned list'); to avoid memory leaks
+ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name);
