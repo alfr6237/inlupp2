@@ -41,11 +41,11 @@ void store_destroy(store_t *store);
 /// @param name the name of the merchandise
 /// @param desc a description of the merchandise
 /// @param price the price of the merchandise
-/// @return if the merch was successful added
+/// @return if the merch was successfully added
 ///
 ///
 /// @note this does not add any stock of the merhcendise to any shelf
-/// @note if the merchandise was not successful added there already exists a
+/// @note if the merchandise was not successfully added there already exists a
 /// merchandise with the same name
 bool store_add_merch(store_t *store, const char *name, const char *desc,
                      const size_t price);
