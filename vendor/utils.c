@@ -37,7 +37,7 @@ answer_t ask_question(const char *question, check_fn *check,
   char buffer[buffer_size];
 
   do {
-    printf("%s\n", question);
+    printf("%s", question);
     read_string(buffer, buffer_size);
     if (check(buffer)) {
       return convert(buffer);
@@ -51,6 +51,11 @@ int ask_question_int(const char *question) {
   return answer.int_value;
 }
 
+size_t ask_question_size(const char *question) {
+  answer_t answer = ask_question(question, is_size, make_size);
+  return answer.size_value;
+}
+
 char *ask_question_string(const char *question) {
   answer_t answer = ask_question(question, not_empty, make_string);
   return answer.string_value;
@@ -62,6 +67,10 @@ double ask_question_float(const char *question) {
 
 answer_t make_int(const char *str) {
   return (answer_t){.int_value = atoi(str)};
+}
+
+answer_t make_size(const char *str) {
+  return (answer_t){.size_value = atoi(str)};
 }
 answer_t make_float(const char *str) {
   return (answer_t){.float_value = atof(str)};
@@ -109,6 +118,14 @@ bool is_number(const char *str) {
   }
 
   return true;
+}
+
+bool is_size(const char *str) {
+  if (!is_number(str)) {
+    return false;
+  }
+  const int number = atoi(str);
+  return number >= 0;
 }
 
 void print(char *str) {
