@@ -5,6 +5,7 @@
 typedef struct link link_t;
 typedef struct list ioopm_list_t;
 typedef void list_remove_fn_t(elem_t elem);
+typedef bool less_than_fn_t(elem_t a, elem_t b);
 
 struct list {
   link_t *first;

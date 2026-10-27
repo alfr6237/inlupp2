@@ -83,3 +83,5 @@ size_t ioopm_list_size(const ioopm_list_t *list);
 /// @param list the linked list
 /// @return true if the number of elements int the list is 0, else false
 bool ioopm_list_is_empty(const ioopm_list_t *list);
+
+void ioopm_list_sort(ioopm_list_t *list, less_than_fn_t *less_than_fn);
