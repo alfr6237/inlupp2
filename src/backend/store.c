@@ -199,6 +199,19 @@ edit_result_t store_edit_merch(store_t *store, const char *old_name,
   return (edit_result_t){.is_ok = true};
 }
 
+static bool shelf_less_than (elem_t a, elem_t b)
+{
+  shelf_t *shelf_a = (shelf_t *) a.p;
+  shelf_t *shelf_b = (shelf_t *) b.p;
+
+  if(shelf_a->shelf_name.c == shelf_b->shelf_name.c)
+  {
+    return shelf_a->shelf_name.n < shelf_b->shelf_name.n;
+  }
+
+  return shelf_a->shelf_name.c < shelf_b->shelf_name.c;
+}
+
 ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name) {
   elem_t merch_id_elem;
   if (!ioopm_hash_table_lookup(store->merch_ids, c_str_elem(merch_name),
@@ -228,6 +241,9 @@ ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name) {
     ioopm_list_iterator_advance(iter);
   }
   ioopm_list_iterator_destroy(iter);
+
+  ioopm_list_sort(stock, shelf_less_than);
+
   return stock;
 }
 

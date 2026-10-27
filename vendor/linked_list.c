@@ -1,6 +1,7 @@
 #include "linked_list.h"
 #include "linked_list_common.h"
 // #include "linked_list_iterator.h"
+#include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -164,5 +165,83 @@ elem_t ioopm_list_remove(ioopm_list_t *list, const size_t index) {
 
     list->size--; // reduce "size" of list
     return result;
+  }
+}
+
+static void swap_link (link_t **prev_next_a, link_t **prev_next_b)
+{
+  assert(prev_next_a != prev_next_b);
+
+  //extracts pointers relevant for first link
+  link_t *link_a = *prev_next_a;
+  link_t *link_a_next = link_a->next;
+
+  //extracts pointer for second link
+  link_t *link_b = *prev_next_b;
+  link_t *link_b_next = link_b->next;
+
+  if(link_b->next == link_a)
+  {
+    link_a->next = link_b;
+    link_b->next = link_a_next;
+    *prev_next_b = link_a;
+  }
+  else if(link_a->next == link_b)
+  {
+    link_b->next = link_a;
+    link_a->next = link_b_next;
+    *prev_next_a = link_b;
+  }
+  else
+  {
+    link_a->next = link_b_next;
+    link_b->next = link_a_next;
+    *prev_next_a = link_b;
+    *prev_next_b = link_a;
+  }
+  
+  // //make previous pointer to a now point to b, a:s next pointer is now b:s next
+  // *prev_next_a = link_b;
+  // if(link_b->next == link_a)
+  // {
+  //   link_a->next = link_b;
+  // }
+  // else
+  // {
+  //   link_a->next = link_b->next;
+  // }
+  // //make prev pointer of b now point to a, next pointer of b is now old next pointer of a
+  // *prev_next_b = link_a;
+  // if(link_a->next == link_b)
+  // {
+  //   link_b->next = link_a;
+  // }
+  // else
+  // {
+  //   link_b->next = link_a_next;
+  // }
+  
+}
+
+void ioopm_list_sort(ioopm_list_t *list, less_than_fn_t *less_than_fn) 
+{
+  link_t **current = &list->first;
+  while(*current != NULL)
+  {
+    puts("\nouter loop start");
+    link_t **swap_cand = &(*current)->next;
+    while(*swap_cand != NULL)
+    {
+      puts("\ninner loop start");
+      if (less_than_fn((*current)->element, (*swap_cand)->element))
+      {
+        puts("\nswap initiated");
+        swap_link(current, swap_cand);
+      }
+
+      printf("\neql: %s\n", swap_cand == &(*swap_cand)->next ? "true" : "false");
+      swap_cand = &(*swap_cand)->next;
+    }
+    current = &(*current)->next;
   }
 }

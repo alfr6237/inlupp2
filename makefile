@@ -43,8 +43,8 @@ $(BUILD_DIR)/frontend: $(BUILD_DIR)/src/frontend/tui.o $(FRONTEND_O) $(VENDOR_O)
 frontend_run: $(BUILD_DIR)/frontend
 	./$<
 
-
-
+frontend_test: $(BUILD_DIR)/frontend
+	@echo test.txt | ./$<
 
 valgrind_backend: $(BUILD_DIR)/backend_test
 	valgrind ./$<

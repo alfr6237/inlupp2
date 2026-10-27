@@ -2,7 +2,7 @@
 #include "../../vendor/linked_list_iterator.h"
 #include "../../vendor/utils.h"
 #include "../backend/store.h"
-#include <_string.h>
+#include <string.h>
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
@@ -168,7 +168,7 @@ static void add_merch(store_t *store) {
 static void remove_merch(store_t *store) {
   char *name = ask_question_string("Name: ");
 
-  const char *confirm_fmt = "Do you really wish to remove %s?";
+  const char *confirm_fmt = "Do you really wish to remove %s?\n";
 
   const int len = snprintf(NULL, 0, confirm_fmt, name);
   assert(len > 0);
