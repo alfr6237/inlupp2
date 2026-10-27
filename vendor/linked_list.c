@@ -168,41 +168,34 @@ elem_t ioopm_list_remove(ioopm_list_t *list, const size_t index) {
   }
 }
 
-static void swap_link (link_t **prev_next_a, link_t **prev_next_b)
-{
+static void swap_link(link_t **prev_next_a, link_t **prev_next_b) {
   assert(prev_next_a != prev_next_b);
 
-  //extracts pointers relevant for first link
+  // extracts pointers relevant for first link
   link_t *link_a = *prev_next_a;
   link_t *link_a_next = link_a->next;
 
-  //extracts pointer for second link
+  // extracts pointer for second link
   link_t *link_b = *prev_next_b;
   link_t *link_b_next = link_b->next;
 
-  if(link_b->next == link_a)
-  {
+  if (link_b->next == link_a) {
     link_a->next = link_b;
     link_b->next = link_a_next;
     *prev_next_b = link_a;
-  }
-  else if(link_a->next == link_b)
-  {
+  } else if (link_a->next == link_b) {
     link_b->next = link_a;
     link_a->next = link_b_next;
     *prev_next_a = link_b;
-  }
-  else
-  {
+  } else {
     link_a->next = link_b_next;
     link_b->next = link_a_next;
     *prev_next_a = link_b;
     *prev_next_b = link_a;
   }
-  
-  // //make previous pointer to a now point to b, a:s next pointer is now b:s next
-  // *prev_next_a = link_b;
-  // if(link_b->next == link_a)
+
+  // //make previous pointer to a now point to b, a:s next pointer is now b:s
+  // next *prev_next_a = link_b; if(link_b->next == link_a)
   // {
   //   link_a->next = link_b;
   // }
@@ -210,9 +203,8 @@ static void swap_link (link_t **prev_next_a, link_t **prev_next_b)
   // {
   //   link_a->next = link_b->next;
   // }
-  // //make prev pointer of b now point to a, next pointer of b is now old next pointer of a
-  // *prev_next_b = link_a;
-  // if(link_a->next == link_b)
+  // //make prev pointer of b now point to a, next pointer of b is now old next
+  // pointer of a *prev_next_b = link_a; if(link_a->next == link_b)
   // {
   //   link_b->next = link_a;
   // }
@@ -220,27 +212,21 @@ static void swap_link (link_t **prev_next_a, link_t **prev_next_b)
   // {
   //   link_b->next = link_a_next;
   // }
-  
 }
 
-void ioopm_list_sort(ioopm_list_t *list, less_than_fn_t *less_than_fn) 
-{
+void ioopm_list_sort(ioopm_list_t *list, less_than_fn_t *less_than_fn) {
   link_t **current = &list->first;
-  while(*current != NULL)
-  {
-    puts("\nouter loop start");
+  while (*current != NULL) {
     link_t **swap_cand = &(*current)->next;
-    while(*swap_cand != NULL)
-    {
-      puts("\ninner loop start");
-      if (less_than_fn((*current)->element, (*swap_cand)->element))
-      {
-        puts("\nswap initiated");
-        swap_link(current, swap_cand);
-      }
+    while (*swap_cand != NULL) {
+      if (!less_than_fn((*current)->element, (*swap_cand)->element)) {
 
-      printf("\neql: %s\n", swap_cand == &(*swap_cand)->next ? "true" : "false");
-      swap_cand = &(*swap_cand)->next;
+        swap_link(current, swap_cand);
+        swap_cand = &(*current)->next;
+      } else {
+
+        swap_cand = &(*swap_cand)->next;
+      }
     }
     current = &(*current)->next;
   }

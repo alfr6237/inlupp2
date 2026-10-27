@@ -2,12 +2,12 @@
 #include "../../vendor/linked_list_iterator.h"
 #include "../../vendor/utils.h"
 #include "../backend/store.h"
-#include <string.h>
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef enum action {
   ADD_MERCH,
@@ -264,6 +264,7 @@ static void show_stock(const store_t *store) {
 
   ioopm_list_t *stock_list = store_get_stock(store, name);
 
+  puts("");
   if (stock_list) {
     print_stock(stock_list);
     ioopm_list_destroy(stock_list);

@@ -44,7 +44,7 @@ frontend_run: $(BUILD_DIR)/frontend
 	./$<
 
 frontend_test: $(BUILD_DIR)/frontend
-	@echo test.txt | ./$<
+	./$< < test.txt
 
 valgrind_backend: $(BUILD_DIR)/backend_test
 	valgrind ./$<
