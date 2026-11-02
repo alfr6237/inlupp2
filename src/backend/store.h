@@ -14,6 +14,14 @@ typedef struct store store_t;
 
 typedef RESULT(shelf_storage_t, search_error_t) get_shelf_storage_result_t;
 
+typedef enum cart_error {
+  CART_NOT_FOUND,
+  QUANTITY_TOO_LARGE,
+  MERCH_NOT_IN_STORE,
+} cart_error_t;
+
+typedef RESULT_VOID(cart_error_t) cart_result_t;
+
 /// @description store represents the entire backend of the program and is
 /// responsible for coordinating merches shelves and later carts when
 /// implemented.
@@ -24,8 +32,12 @@ struct store {
   ioopm_hash_table_t *shelfs;    // shelf_id to shelf_storage
   ioopm_hash_table_t *merch;     // merch_id to merch
   ioopm_hash_table_t *locations; // merch_id to link list of shelf_id
+  ioopm_hash_table_t *
+      reserved_stock; // merch_id to how much of this merch is reserved by carts
+  ioopm_hash_table_t *carts; // cart_id to cart
 
-  size_t current_id;
+  size_t current_id;      // id for shelves and merchandise
+  size_t current_cart_id; // id for carts
 };
 
 /// @brief creates a store
@@ -55,6 +67,11 @@ bool store_add_merch(store_t *store, const char *name, const char *desc,
 /// @param merch_name the name of the merch ot be removed
 /// @return if the merch was removed or not
 bool store_remove_merch(store_t *store, const char *merch_name);
+
+/// @brief returns a list of all the merch added to the store
+/// @param store the store to operate on
+/// @returns list of the merch in the store in alphabetical order
+ioopm_list_t *store_merch_list(const store_t *store);
 
 /// @brief retrives a pointer to a merch_t in the store given the merchandises
 /// name
@@ -99,3 +116,51 @@ edit_result_t store_edit_merch(store_t *store, const char *current_name,
 /// @note the caller of this functions owns the returned list and is responsible
 /// for calling ioopm_list_destroy('returned list'); to avoid memory leaks
 ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name);
+
+/// @brief add a new cart to the store
+/// @param store the store to operate on
+/// @return the id that refers to the new cart
+size_t store_add_cart(store_t *store);
+
+/// @brief removes an existing cart from the store
+/// @param store the store to operate on
+/// @return true if the cart existed in the store, else false
+bool store_cart_remove(store_t *store, size_t cart_id);
+
+/// @brief add merch to a cart
+/// @param store the store to operate on
+/// @param cart_id the cart to add the merch to
+/// @param name of the merch to add to cart
+/// @param quantity the quantity of merch to add to cart
+/// @return if successful the is_ok field is set to true and the error field
+/// should be ignored, if is_ok is set to false the error field represents what
+/// went wrong
+cart_result_t store_cart_add_merch(store_t *store, size_t cart_id,
+                                   const char *merch_name, size_t quantity);
+
+/// @brief removes merch from a cart
+/// @param store the store to operate on
+/// @param cart_id the cart to remove the merch from
+/// @param name of the merch to remove from cart
+/// @param quantity the quantity of merch to remove from cart
+/// @return if successful the is_ok field is set to true and the error field
+/// should be ignored, if is_ok is set to false the error field represents what
+/// went wrong
+cart_result_t store_cart_remove_merch(store_t *store, size_t cart_id,
+                                      const char *merch_name, size_t quantity);
+
+/// @brief calculats the cost of all merch in the given cart
+/// @param store the store to operate on
+/// @param cart_id the cart to calculate the cost of
+/// @param out_cost out parameter to store the cost in
+/// @return returns false if cart is not in store else true
+/// return false if cart nto found
+bool store_cart_cost(store_t *store, size_t cart_id, size_t *out_cost);
+
+/// @brief checkout a cart from the store,
+/// this removes stock of the merch carried by cart from shelves in the store
+///
+/// @param store the store to operate on
+/// @param cart_id the cart to checkout
+/// @return returns false if cart is not in store else true
+bool store_cart_checkout(store_t *store, size_t cart_id);

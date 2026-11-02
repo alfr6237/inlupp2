@@ -2,6 +2,14 @@ A
 hej
 hoj
 32
+A
+Zebra
+randig
+89
+A
+apa
+trevlig
+105
 P
 hej
 C45
@@ -16,6 +24,7 @@ Q32
 4
 S
 hej
+L
 Q
 
 

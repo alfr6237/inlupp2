@@ -31,13 +31,15 @@ bool execute_action(action_t action, store_t *store);
 bool check_action_fn(const char *str);
 
 static void add_merch(store_t *store);
+static void list_merch(store_t *store);
 static void remove_merch(store_t *store);
 static void edit_merch(store_t *store);
 static void show_stock(const store_t *store);
 static void replenish(store_t *store);
 static void print_stock(ioopm_list_t *stock_list);
+static void print_merch(merch_t *merch);
 
-static bool confirmation(const char *question);
+static bool confirmation(const char *question, char code);
 static bool is_shelf_name(const char *str);
 static shelf_name_t make_shelf_name(const char *str);
 static shelf_name_t ask_question_shelf_name(const char *question);
@@ -66,7 +68,7 @@ bool execute_action(action_t action, store_t *store) {
     add_merch(store);
     break;
   case LIST_MERCH:
-    // TODO: implement for backend
+    list_merch(store);
     break;
   case REMOVE_MERCH:
     puts("\nRemove merch");
@@ -165,6 +167,42 @@ static void add_merch(store_t *store) {
   free(name);
 }
 
+static void list_merch(store_t *store) {
+  ioopm_list_t *list = store_merch_list(store);
+
+  ioopm_list_iterator_t *iter = ioopm_list_iterator_create(list);
+
+  puts("");
+  bool keep_going = false;
+  size_t loop_count = 0;
+  do {
+    size_t i = 0;
+    while (!ioopm_list_iterator_at_end(iter) && i < 20) {
+
+      elem_t merch_elem = ioopm_list_iterator_current(iter);
+      merch_t *merch = (merch_t *)merch_elem.p;
+
+      size_t merch_list_number = loop_count * 20 + i + 1;
+      printf("%zu. ", merch_list_number);
+      print_merch(merch);
+      puts("");
+      ioopm_list_iterator_advance(iter);
+      i++;
+    }
+
+    if (ioopm_list_iterator_at_end(iter)) {
+      keep_going = false;
+    } else {
+      keep_going =
+          confirmation("Do you whish to continue to list merchendise?", 'N');
+    }
+    loop_count++;
+  } while (keep_going);
+
+  ioopm_list_iterator_destroy(iter);
+  ioopm_list_destroy(list);
+}
+
 static void remove_merch(store_t *store) {
   char *name = ask_question_string("Name: ");
 
@@ -176,9 +214,7 @@ static void remove_merch(store_t *store) {
   char *buffer = calloc(len + 1, sizeof(char));
   snprintf(buffer, len, confirm_fmt, name);
 
-  const char *confirmation = ask_question_string(buffer);
-
-  if (toupper(confirmation[0]) == 'Y') {
+  if (confirmation(buffer, 'Y')) {
     if (!store_remove_merch(store, name)) {
       printf("Merch with name %s doesn't exist, merch not removed\n", name);
     }
@@ -201,7 +237,7 @@ static void edit_merch(store_t *store) {
   char *buffer = calloc(len + 1, sizeof(char));
   snprintf(buffer, len, confrim_fmt, name);
 
-  if (confirmation(buffer)) {
+  if (confirmation(buffer, 'Y')) {
     const edit_result_t result =
         store_edit_merch(store, name, new_name, new_desc, new_price);
     if (!result.is_ok) {
@@ -225,9 +261,10 @@ static void edit_merch(store_t *store) {
   free(name);
 }
 
-static bool confirmation(const char *question) {
+static bool confirmation(const char *question, char code) {
+
   char *answer = ask_question_string(question);
-  bool result = toupper(answer[0]) == 'Y';
+  bool result = toupper(answer[0]) == toupper(code);
 
   free(answer);
   return result;
@@ -258,7 +295,6 @@ static void replenish(store_t *store) {
   free(name);
 }
 
-// TODO: sort the list in backend
 static void show_stock(const store_t *store) {
   char *name = ask_question_string("Merch name to show stock of: ");
 
@@ -291,7 +327,7 @@ static void print_stock(ioopm_list_t *stock_list) {
 }
 
 static void print_merch(merch_t *merch) {
-  printf("Name: %s\nDescription: %s\nPrice: %zd\n", merch->name, merch->desc,
+  printf("%s\nDescription: %s\nPrice: %zd\n", merch->name, merch->desc,
          merch->price);
 }
 

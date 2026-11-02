@@ -1,5 +1,6 @@
 #include "../src/backend/merch.h"
 #include "../src/backend/store.h"
+#include "../vendor/linked_list_iterator.h"
 
 #include <CUnit/Basic.h>
 
@@ -31,7 +32,7 @@ static const shelf_name_t shelf_names[4] = {
 };
 
 static const size_t prices[4] = {1, 2, 3, 4};
-static const size_t quantities[4] = {53, 128, 256, 512};
+static const size_t quantities[4] = {64, 128, 256, 512};
 
 static bool shelf_name_eql(shelf_name_t shelf_a, shelf_name_t shelf_b) {
   return shelf_a.c == shelf_b.c && shelf_a.n == shelf_b.n;
@@ -189,6 +190,192 @@ void test_store_get_stock_non_existing(void) {
   store_destroy(store);
 }
 
+void test_store_get_stock(void) {
+
+  store_t *store = store_create();
+  CU_ASSERT_PTR_NULL(store_get_stock(store, merch_names[0]));
+
+  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+
+  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
+  store_replenish_merch(store, merch_names[0], shelf_names[2], quantities[2]);
+  store_replenish_merch(store, merch_names[0], shelf_names[3], quantities[3]);
+  store_replenish_merch(store, merch_names[0], shelf_names[1], quantities[1]);
+
+  ioopm_list_t *stock = store_get_stock(store, merch_names[0]);
+  CU_ASSERT_PTR_NOT_NULL(stock);
+  CU_ASSERT_FALSE(ioopm_list_is_empty(stock));
+
+  ioopm_list_iterator_t *iter = ioopm_list_iterator_create(stock);
+
+  for (size_t i = 0; !ioopm_list_iterator_at_end(iter); i++) {
+
+    elem_t current_elem = ioopm_list_iterator_current(iter);
+    shelf_t *shelf = current_elem.p;
+    CU_ASSERT_TRUE(
+        memcmp(&shelf->shelf_name, &shelf_names[i], sizeof(shelf_name_t)));
+    CU_ASSERT_EQUAL(shelf->quantity, quantities[i]);
+
+    ioopm_list_iterator_advance(iter);
+  }
+
+  ioopm_list_iterator_destroy(iter);
+  ioopm_list_destroy(stock);
+
+  store_destroy(store);
+}
+
+void test_merch_list(void) {
+
+  store_t *store = store_create();
+
+  ioopm_list_t *empty_list = store_merch_list(store);
+  CU_ASSERT_PTR_NOT_NULL(empty_list);
+  CU_ASSERT_TRUE(ioopm_list_is_empty(empty_list));
+
+  for (size_t i = 0; i < 4; i++) {
+    store_add_merch(store, merch_names[i], descriptions[i], prices[i]);
+  }
+
+  ioopm_list_t *non_empty_list = store_merch_list(store);
+  ioopm_list_iterator_t *iter = ioopm_list_iterator_create(non_empty_list);
+  for (size_t i = 0; i < 4; i++) {
+
+    elem_t current = ioopm_list_iterator_current(iter);
+    merch_t *merch = current.p;
+
+    CU_ASSERT_TRUE(strcmp(merch_names[i], merch->name) == 0);
+    CU_ASSERT_TRUE(strcmp(descriptions[i], merch->desc) == 0);
+    CU_ASSERT_EQUAL(prices[i], merch->price);
+
+    CU_ASSERT_FALSE(ioopm_list_iterator_at_end(iter));
+    ioopm_list_iterator_advance(iter);
+  }
+
+  ioopm_list_iterator_destroy(iter);
+  ioopm_list_destroy(non_empty_list);
+
+  store_destroy(store);
+}
+
+void test_cart_add_remove(void) {
+  store_t *store = store_create();
+
+  const size_t random_cart_id = 77777777;
+
+  CU_ASSERT_FALSE(store_cart_remove(store, random_cart_id));
+
+  const size_t cart_id = store_add_cart(store);
+
+  CU_ASSERT_TRUE(store_cart_remove(store, cart_id));
+
+  store_destroy(store);
+}
+
+void test_cart_add_remove_merch(void) {
+
+  store_t *store = store_create();
+
+  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+
+  const size_t random_cart_id = 77777777;
+
+  cart_result_t result =
+      store_cart_add_merch(store, random_cart_id, merch_names[0], 0);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == CART_NOT_FOUND);
+
+  const size_t cart_id = store_add_cart(store);
+
+  result = store_cart_add_merch(store, cart_id, "FINNS INTE", 0);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_STORE);
+
+  result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == QUANTITY_TOO_LARGE);
+
+  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
+
+  result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+  CU_ASSERT_TRUE(result.is_ok);
+
+  store_destroy(store);
+}
+
+void test_cart_calculate_cost(void) {
+
+  const size_t random_cart_id = 77777777;
+  size_t cost = 0;
+
+  store_t *store = store_create();
+
+  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+
+  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
+  CU_ASSERT_FALSE(store_cart_cost(store, random_cart_id, &cost));
+
+  const size_t cart_id = store_add_cart(store);
+
+  CU_ASSERT_TRUE(store_cart_cost(store, cart_id, &cost));
+  CU_ASSERT_EQUAL(cost, 0);
+
+  cart_result_t result =
+      store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+  CU_ASSERT_TRUE(result.is_ok);
+
+  store_cart_cost(store, cart_id, &cost);
+  CU_ASSERT_TRUE(store_cart_cost(store, cart_id, &cost));
+  CU_ASSERT_EQUAL(cost, prices[0]);
+
+  store_destroy(store);
+}
+
+static size_t count_stock(store_t *store, const char *merch_name) {
+  size_t count = 0;
+  ioopm_list_t *stock = store_get_stock(store, merch_name);
+
+  ioopm_list_iterator_t *iter = ioopm_list_iterator_create(stock);
+
+  while (!ioopm_list_iterator_at_end(iter)) {
+    elem_t current_elem = ioopm_list_iterator_current(iter);
+    shelf_t *shelf = current_elem.p;
+
+    count += shelf->quantity;
+    ioopm_list_iterator_advance(iter);
+  }
+
+  ioopm_list_iterator_destroy(iter);
+  ioopm_list_destroy(stock);
+
+  return count;
+}
+// TODO: use count_cart to check checkout functionality
+void test_cart_checkout(void) {
+  store_t *store = store_create();
+
+  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  store_add_merch(store, merch_names[1], descriptions[1], prices[1]);
+
+  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
+  store_replenish_merch(store, merch_names[0], shelf_names[1], quantities[1]);
+
+  store_replenish_merch(store, merch_names[1], shelf_names[2], quantities[0]);
+  store_replenish_merch(store, merch_names[1], shelf_names[3], quantities[1]);
+
+  size_t cart_ids[3];
+  cart_ids[0] = store_add_cart(store);
+  cart_ids[1] = store_add_cart(store);
+  cart_ids[2] = store_add_cart(store);
+
+  store_cart_add_merch(store, cart_ids[0], merch_names[0],
+                       quantities[0] + quantities[1] + 1);
+
+  store_cart_add_merch(store, cart_ids[0], merch_names[1], quantities[1]);
+
+  store_destroy(store);
+}
+
 int init_suite(void) {
   // Change this function if you want to do something *before* you
   // run a test suite
@@ -237,6 +424,8 @@ int main(void) {
                    test_merch_edit_success) == NULL) ||
       (CU_add_test(backend_test_suite, "Stock of merch that isnt stocked",
                    test_store_get_stock_non_existing) == NULL) ||
+      (CU_add_test(backend_test_suite, "Stock of merch that is stocked",
+                   test_store_get_stock) == NULL) ||
 
       0) {
     // If adding any of the tests fails, we tear down CUnit and exit
