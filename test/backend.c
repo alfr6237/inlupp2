@@ -73,7 +73,7 @@ void test_replenish_merch_not_found(void) {
       store, merch_names[0], shelf_names[0], quantities[0]);
 
   CU_ASSERT_FALSE(result.is_ok)
-  CU_ASSERT_EQUAL(result.error, MERCH_NOT_IN_STORE);
+  CU_ASSERT_EQUAL(result.error, MERCH_NOT_FOUND);
 
   store_destroy(store);
 }
@@ -233,6 +233,8 @@ void test_merch_list(void) {
   CU_ASSERT_PTR_NOT_NULL(empty_list);
   CU_ASSERT_TRUE(ioopm_list_is_empty(empty_list));
 
+  ioopm_list_destroy(empty_list);
+
   for (size_t i = 0; i < 4; i++) {
     store_add_merch(store, merch_names[i], descriptions[i], prices[i]);
   }
@@ -293,12 +295,15 @@ void test_cart_add_remove_merch(void) {
 
   result = store_cart_add_merch(store, cart_id, "FINNS INTE", 1);
   CU_ASSERT_FALSE(result.is_ok);
-  CU_ASSERT_TRUE(result.error == MERCH_NOT_FOUND);
+  CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_STORE);
 
-  
   result = store_cart_remove_merch(store, cart_id, "FINNS INTE", 0);
   CU_ASSERT_FALSE(result.is_ok);
-  CU_ASSERT_TRUE(result.error == MERCH_NOT_FOUND);
+  CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_STORE);
+
+  result = store_cart_remove_merch(store, cart_id, merch_names[0], 0);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_CART);
 
   result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_FALSE(result.is_ok);
@@ -309,11 +314,13 @@ void test_cart_add_remove_merch(void) {
   result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_TRUE(result.is_ok);
 
-  result = store_cart_remove_merch(store, cart_id, merch_names[0], quantities[0] + 1);
+  result = store_cart_remove_merch(store, cart_id, merch_names[0],
+                                   quantities[0] + 1);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == QUANTITY_TOO_LARGE);
 
-  result = store_cart_remove_merch(store, cart_id, merch_names[0], quantities[0]);
+  result =
+      store_cart_remove_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_TRUE(result.is_ok);
 
   store_destroy(store);
@@ -347,26 +354,6 @@ void test_cart_calculate_cost(void) {
   store_destroy(store);
 }
 
-static size_t count_stock(store_t *store, const char *merch_name) {
-  size_t count = 0;
-  ioopm_list_t *stock = store_get_stock(store, merch_name);
-
-  ioopm_list_iterator_t *iter = ioopm_list_iterator_create(stock);
-
-  while (!ioopm_list_iterator_at_end(iter)) {
-    elem_t current_elem = ioopm_list_iterator_current(iter);
-    shelf_t *shelf = current_elem.p;
-
-    count += shelf->quantity;
-    ioopm_list_iterator_advance(iter);
-  }
-
-  ioopm_list_iterator_destroy(iter);
-  ioopm_list_destroy(stock);
-
-  return count;
-}
-// TODO: use count_cart to check checkout functionality
 void test_cart_checkout(void) {
   store_t *store = store_create();
 
@@ -378,25 +365,25 @@ void test_cart_checkout(void) {
 
   store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
   store_replenish_merch(store, merch_names[0], shelf_names[1], quantities[1]);
-  
+
   size_t cart_id = store_add_cart(store);
 
-  size_t merch_stock = count_stock(store, merch_names[0]);
+  size_t merch_stock = store_count_stock(store, merch_names[0]);
 
   CU_ASSERT_EQUAL(merch_stock, quantities[0] + quantities[1]);
 
-  store_cart_add_merch(store, cart_id, merch_names[0], (quantities[1] + quantities[0]) / 2);
+  store_cart_add_merch(store, cart_id, merch_names[0],
+                       (quantities[0] + quantities[1]) / 2);
 
   store_cart_checkout(store, cart_id);
 
-  merch_stock = count_stock(store, merch_names[0]);
-  CU_ASSERT_EQUAL(merch_stock, quantities[0] + quantities[1] / 2);
+  merch_stock = store_count_stock(store, merch_names[0]);
+  CU_ASSERT_EQUAL(merch_stock, (quantities[0] + quantities[1]) / 2);
 
   store_destroy(store);
 }
 
 void test_store_to_cart_remove(void) {
-  size_t cost = 0;
 
   store_t *store = store_create();
 
@@ -410,9 +397,10 @@ void test_store_to_cart_remove(void) {
 
   store_remove_merch(store, merch_names[0]);
 
-  cart_result_t result = store_cart_remove_merch(store, cart_id, merch_names[0], 0);
+  cart_result_t result =
+      store_cart_remove_merch(store, cart_id, merch_names[0], 0);
   CU_ASSERT_FALSE(result.is_ok);
-  CU_ASSERT_EQUAL(MERCH_NOT_FOUND, result.error);
+  CU_ASSERT_EQUAL(MERCH_NOT_IN_STORE, result.error);
 
   store_destroy(store);
 }
@@ -467,8 +455,8 @@ int main(void) {
                    test_store_get_stock_non_existing) == NULL) ||
       (CU_add_test(backend_test_suite, "Stock of merch that is stocked",
                    test_store_get_stock) == NULL) ||
-      (CU_add_test(backend_test_suite, "Test list of merch",
-                   test_merch_list) == NULL) ||
+      (CU_add_test(backend_test_suite, "Test list of merch", test_merch_list) ==
+       NULL) ||
       (CU_add_test(backend_test_suite, "Add and remove cart to/from store",
                    test_cart_add_remove) == NULL) ||
       (CU_add_test(backend_test_suite, "Add and remove merch to/from cart",
@@ -477,9 +465,10 @@ int main(void) {
                    test_cart_calculate_cost) == NULL) ||
       (CU_add_test(backend_test_suite, "Test checkout of cart",
                    test_cart_checkout) == NULL) ||
-      (CU_add_test(backend_test_suite, "Test removal from cart when remove from store",
+      (CU_add_test(backend_test_suite,
+                   "Test removal from cart when remove from store",
                    test_store_to_cart_remove) == NULL) ||
- 
+
       0) {
     // If adding any of the tests fails, we tear down CUnit and exit
     CU_cleanup_registry();

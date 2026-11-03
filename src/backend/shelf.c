@@ -1,4 +1,5 @@
 #include "shelf.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 shelf_storage_t *create_shelf_storage(shelf_name_t shelf_name, size_t merch_id,
@@ -14,12 +15,12 @@ shelf_storage_t *create_shelf_storage(shelf_name_t shelf_name, size_t merch_id,
 void destotoy_shelf_storage(shelf_storage_t *storage) { free(storage); }
 
 replenish_result_t replenish_merch(shelf_storage_t *storage, size_t merch_id,
-                                   size_t quantitiy) {
+                                   size_t quantity) {
   if (merch_id != storage->merch_id) {
     return (replenish_result_t){.is_ok = false, .error = MERCH_CONFLICT};
   }
 
-  storage->quantity += quantitiy;
+  storage->quantity += quantity;
 
   return (replenish_result_t){.is_ok = true};
 }

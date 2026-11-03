@@ -47,7 +47,7 @@ frontend_test: $(BUILD_DIR)/frontend
 	./$< < test.txt
 
 valgrind_backend: $(BUILD_DIR)/backend_test
-	valgrind ./$<
+	valgrind --leak-check=full ./$< 
 
 clean:
 	rm -rf $(BUILD_DIR)

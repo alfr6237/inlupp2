@@ -133,6 +133,9 @@ elem_t ioopm_list_remove(ioopm_list_t *list, const size_t index) {
     free(list->first);       // free current first
     list->first = new_first; // list first-pointer to new first
 
+    if (list->size == 1) {
+      list->last = NULL;
+    }
     list->size--; // decrease "size" of list
     return result;
   } else if (index == size - 1) // remove last link

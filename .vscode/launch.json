@@ -7,9 +7,9 @@
 
         {
             "name": "Launch",
-            "type": "cppdbg",
+            "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/build/frontend",
+            "program": "${workspaceRoot}/build/backend_test",
             "args": [],
             "cwd": "${workspaceRoot}"
         }

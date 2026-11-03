@@ -17,7 +17,8 @@ typedef RESULT(shelf_storage_t, search_error_t) get_shelf_storage_result_t;
 typedef enum cart_error {
   CART_NOT_FOUND,
   QUANTITY_TOO_LARGE,
-  MERCH_NOT_FOUND,
+  MERCH_NOT_IN_STORE,
+  MERCH_NOT_IN_CART,
 } cart_error_t;
 
 typedef RESULT_VOID(cart_error_t) cart_result_t;
@@ -164,3 +165,11 @@ bool store_cart_cost(store_t *store, size_t cart_id, size_t *out_cost);
 /// @param cart_id the cart to checkout
 /// @return returns false if cart is not in store else true
 bool store_cart_checkout(store_t *store, size_t cart_id);
+
+/// @brief calculates the stock of a merch in the store
+///
+///
+/// @param store the store to operate on
+/// @param merch name the merch to caluclate the stock fo
+/// @return the stock quantity
+size_t store_count_stock(store_t *store, const char *merch_name);
