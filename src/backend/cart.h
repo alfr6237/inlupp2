@@ -3,10 +3,6 @@
 
 #include "result.h"
 
-typedef struct cart {
-  ioopm_hash_table_t *items;
-} cart_t;
-
 typedef enum result_error {
   MERCH_NOT_IN_CART,
   COUNT_TOO_LARGE,
@@ -14,8 +10,8 @@ typedef enum result_error {
 
 typedef RESULT_VOID(result_error_t) remove_result_t;
 
-cart_t cart_create();
-void cart_destroy(cart_t cart);
+ioopm_hash_table_t *cart_create();
+void cart_destroy(ioopm_hash_table_t *cart);
 
-void cart_add_merch(cart_t cart, size_t merch_id, size_t count);
-remove_result_t cart_remove_merch(cart_t cart, size_t merch_id, size_t count);
+void cart_add_merch(ioopm_hash_table_t *cart, size_t merch_id, size_t count);
+remove_result_t cart_remove_merch(ioopm_hash_table_t *cart, size_t merch_id, size_t count);

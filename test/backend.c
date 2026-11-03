@@ -12,9 +12,9 @@
 
 static const char *merch_names[4] = {
     "banan",
-    "melon",
-    "kiwi",
     "citron",
+    "kiwi",
+    "melon",
 };
 
 static const char *descriptions[4] = {
@@ -73,7 +73,7 @@ void test_replenish_merch_not_found(void) {
       store, merch_names[0], shelf_names[0], quantities[0]);
 
   CU_ASSERT_FALSE(result.is_ok)
-  CU_ASSERT_EQUAL(result.error, MERCH_NOT_FOUND);
+  CU_ASSERT_EQUAL(result.error, MERCH_NOT_IN_STORE);
 
   store_destroy(store);
 }
@@ -212,8 +212,8 @@ void test_store_get_stock(void) {
 
     elem_t current_elem = ioopm_list_iterator_current(iter);
     shelf_t *shelf = current_elem.p;
-    CU_ASSERT_TRUE(
-        memcmp(&shelf->shelf_name, &shelf_names[i], sizeof(shelf_name_t)));
+    CU_ASSERT_EQUAL(shelf->shelf_name.c, shelf_names[i].c);
+    CU_ASSERT_EQUAL(shelf->shelf_name.n, shelf_names[i].n);
     CU_ASSERT_EQUAL(shelf->quantity, quantities[i]);
 
     ioopm_list_iterator_advance(iter);
@@ -281,15 +281,24 @@ void test_cart_add_remove_merch(void) {
   const size_t random_cart_id = 77777777;
 
   cart_result_t result =
-      store_cart_add_merch(store, random_cart_id, merch_names[0], 0);
+      store_cart_add_merch(store, random_cart_id, merch_names[0], 1);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == CART_NOT_FOUND);
+
+  result = store_cart_remove_merch(store, random_cart_id, merch_names[0], 0);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == CART_NOT_FOUND);
 
   const size_t cart_id = store_add_cart(store);
 
-  result = store_cart_add_merch(store, cart_id, "FINNS INTE", 0);
+  result = store_cart_add_merch(store, cart_id, "FINNS INTE", 1);
   CU_ASSERT_FALSE(result.is_ok);
-  CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_STORE);
+  CU_ASSERT_TRUE(result.error == MERCH_NOT_FOUND);
+
+  
+  result = store_cart_remove_merch(store, cart_id, "FINNS INTE", 0);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == MERCH_NOT_FOUND);
 
   result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_FALSE(result.is_ok);
@@ -298,6 +307,13 @@ void test_cart_add_remove_merch(void) {
   store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
 
   result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+  CU_ASSERT_TRUE(result.is_ok);
+
+  result = store_cart_remove_merch(store, cart_id, merch_names[0], quantities[0] + 1);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == QUANTITY_TOO_LARGE);
+
+  result = store_cart_remove_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_TRUE(result.is_ok);
 
   store_destroy(store);
@@ -326,7 +342,7 @@ void test_cart_calculate_cost(void) {
 
   store_cart_cost(store, cart_id, &cost);
   CU_ASSERT_TRUE(store_cart_cost(store, cart_id, &cost));
-  CU_ASSERT_EQUAL(cost, prices[0]);
+  CU_ASSERT_EQUAL(cost, prices[0] * quantities[0]);
 
   store_destroy(store);
 }
@@ -354,24 +370,49 @@ static size_t count_stock(store_t *store, const char *merch_name) {
 void test_cart_checkout(void) {
   store_t *store = store_create();
 
+  size_t random_cart_id = 7777777;
+
+  CU_ASSERT_FALSE(store_cart_checkout(store, random_cart_id));
+
   store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
-  store_add_merch(store, merch_names[1], descriptions[1], prices[1]);
 
   store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
   store_replenish_merch(store, merch_names[0], shelf_names[1], quantities[1]);
+  
+  size_t cart_id = store_add_cart(store);
 
-  store_replenish_merch(store, merch_names[1], shelf_names[2], quantities[0]);
-  store_replenish_merch(store, merch_names[1], shelf_names[3], quantities[1]);
+  size_t merch_stock = count_stock(store, merch_names[0]);
 
-  size_t cart_ids[3];
-  cart_ids[0] = store_add_cart(store);
-  cart_ids[1] = store_add_cart(store);
-  cart_ids[2] = store_add_cart(store);
+  CU_ASSERT_EQUAL(merch_stock, quantities[0] + quantities[1]);
 
-  store_cart_add_merch(store, cart_ids[0], merch_names[0],
-                       quantities[0] + quantities[1] + 1);
+  store_cart_add_merch(store, cart_id, merch_names[0], (quantities[1] + quantities[0]) / 2);
 
-  store_cart_add_merch(store, cart_ids[0], merch_names[1], quantities[1]);
+  store_cart_checkout(store, cart_id);
+
+  merch_stock = count_stock(store, merch_names[0]);
+  CU_ASSERT_EQUAL(merch_stock, quantities[0] + quantities[1] / 2);
+
+  store_destroy(store);
+}
+
+void test_store_to_cart_remove(void) {
+  size_t cost = 0;
+
+  store_t *store = store_create();
+
+  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+
+  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
+
+  size_t cart_id = store_add_cart(store);
+
+  store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+
+  store_remove_merch(store, merch_names[0]);
+
+  cart_result_t result = store_cart_remove_merch(store, cart_id, merch_names[0], 0);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_EQUAL(MERCH_NOT_FOUND, result.error);
 
   store_destroy(store);
 }
@@ -426,7 +467,19 @@ int main(void) {
                    test_store_get_stock_non_existing) == NULL) ||
       (CU_add_test(backend_test_suite, "Stock of merch that is stocked",
                    test_store_get_stock) == NULL) ||
-
+      (CU_add_test(backend_test_suite, "Test list of merch",
+                   test_merch_list) == NULL) ||
+      (CU_add_test(backend_test_suite, "Add and remove cart to/from store",
+                   test_cart_add_remove) == NULL) ||
+      (CU_add_test(backend_test_suite, "Add and remove merch to/from cart",
+                   test_cart_add_remove_merch) == NULL) ||
+      (CU_add_test(backend_test_suite, "Test cost calculation of cart",
+                   test_cart_calculate_cost) == NULL) ||
+      (CU_add_test(backend_test_suite, "Test checkout of cart",
+                   test_cart_checkout) == NULL) ||
+      (CU_add_test(backend_test_suite, "Test removal from cart when remove from store",
+                   test_store_to_cart_remove) == NULL) ||
+ 
       0) {
     // If adding any of the tests fails, we tear down CUnit and exit
     CU_cleanup_registry();

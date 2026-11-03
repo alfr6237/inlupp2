@@ -5,7 +5,7 @@
 #include "cart.h"
 #include "result.h"
 #include "shelf.h"
-#include <_string.h>
+#include <string.h>
 #include <assert.h>
 #include <ctype.h>
 #include <stddef.h>
@@ -61,7 +61,7 @@ store_t *store_create(void) {
       ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn, NULL, NULL);
 
   store->current_id = 0;
-  store->current_cart_id = 1;
+  store->current_cart_id = 0;
 
   return store;
 }
@@ -119,6 +119,7 @@ bool store_add_merch(store_t *store, const char *name, const char *desc,
   ioopm_hash_table_insert(store->merch, merch_id, ptr_elem(merch));
   ioopm_list_t *locations = ioopm_list_create(NULL);
   ioopm_hash_table_insert(store->locations, merch_id, ptr_elem(locations));
+  ioopm_hash_table_insert(store->reserved_stock, merch_id, size_elem(0));
 
   return true;
 }
@@ -165,7 +166,7 @@ replenish_result_t store_replenish_merch(store_t *store, const char *merch_name,
       store->merch_ids, str_elem((char *)merch_name), &merch_id);
 
   if (!merch_found) {
-    return (replenish_result_t){.is_ok = false, .error = MERCH_NOT_FOUND};
+    return (replenish_result_t){.is_ok = false, .error = MERCH_NOT_IN_STORE};
   }
 
   elem_t shelf_id;
@@ -214,6 +215,7 @@ bool store_remove_merch(store_t *store, const char *merch_name) {
   elem_t _;
 
   assert(ioopm_hash_table_remove(store->merch, merch_id, &_));
+  
 
   // TODO: extract to a helper function to inrease readabillity
   ioopm_hash_table_iterator_t *carts_iter =
@@ -222,14 +224,16 @@ bool store_remove_merch(store_t *store, const char *merch_name) {
   while (!ioopm_hash_table_iterator_at_end(carts_iter)) {
     elem_t current_elem = ioopm_hash_table_iterator_current_value(carts_iter);
 
-    cart_t *cart = current_elem.p;
+    ioopm_hash_table_t *cart = current_elem.p;
 
     elem_t _;
-    ioopm_hash_table_remove(cart->items, merch_id, &_);
+    ioopm_hash_table_remove(cart, merch_id, &_);
 
     ioopm_hash_table_iterator_advance(carts_iter);
   }
   ioopm_hash_table_iterator_destroy(carts_iter);
+
+  assert(ioopm_hash_table_remove(store->reserved_stock, merch_id, &_));
 
   return true;
 }
@@ -261,40 +265,164 @@ edit_result_t store_edit_merch(store_t *store, const char *old_name,
 }
 
 size_t store_add_cart(store_t *store) {
-  (void)store;
-  return 0;
+  
+  size_t cart_id = ++(store->current_cart_id);
+
+  ioopm_hash_table_t *cart = cart_create();
+
+  ioopm_hash_table_insert(store->carts, size_elem(cart_id), ptr_elem(cart));
+
+  return cart_id;
 }
 
 bool store_cart_remove(store_t *store, size_t cart_id) {
-  (void)store;
-  (void)cart_id;
-  return false;
+  elem_t _;
+  return ioopm_hash_table_remove(store->carts, size_elem(cart_id), &_);  
+}
+
+size_t store_count_stock(store_t *store, const char *merch_name) {
+  size_t count = 0;
+  ioopm_list_t *stock = store_get_stock(store, merch_name);
+
+  ioopm_list_iterator_t *iter = ioopm_list_iterator_create(stock);
+
+  while (!ioopm_list_iterator_at_end(iter)) {
+    elem_t current_elem = ioopm_list_iterator_current(iter);
+    shelf_t *shelf = current_elem.p;
+
+    count += shelf->quantity;
+    ioopm_list_iterator_advance(iter);
+  }
+
+  ioopm_list_iterator_destroy(iter);
+  ioopm_list_destroy(stock);
+
+  return count;
 }
 
 cart_result_t store_cart_add_merch(store_t *store, size_t cart_id,
-                                   const char *merch_name, size_t quantity) {
-  (void)store;
-  (void)cart_id;
-  (void)merch_name;
-  (void)quantity;
-  return (cart_result_t){.is_ok = false, .error = CART_NOT_FOUND};
+                                   const char *merch_name, size_t quantity)
+{
+  assert(quantity > 0);
+  elem_t cart_elem;
+  if(!ioopm_hash_table_lookup(store->carts, size_elem(cart_id), &cart_elem))
+  {
+    return (cart_result_t) {.is_ok = false, .error = CART_NOT_FOUND};
+  }
+
+  elem_t merch_id_elem;
+  if(!ioopm_hash_table_lookup(store->merch_ids, c_str_elem(merch_name), &merch_id_elem))
+  {
+    return (cart_result_t) {.is_ok = false, .error = MERCH_NOT_FOUND};
+  }
+
+  elem_t reserved_elem;
+  assert(ioopm_hash_table_lookup(store->reserved_stock, merch_id_elem, &reserved_elem));
+
+  size_t reserved = reserved_elem.sz;
+
+  if((store_count_stock(store, merch_name) - reserved) < quantity)
+  {
+    return (cart_result_t) {.is_ok = false, .error = QUANTITY_TOO_LARGE};
+  }
+
+  ioopm_hash_table_t *cart = cart_elem.p;
+
+  ioopm_hash_table_insert(store->reserved_stock, merch_id_elem, size_elem(reserved + quantity));
+
+  elem_t cart_quant_elem;
+  size_t total_quantity = quantity; 
+  if(ioopm_hash_table_lookup(cart, merch_id_elem, &cart_quant_elem))
+  {
+    total_quantity += cart_quant_elem.sz;
+  }
+  ioopm_hash_table_insert(cart, merch_id_elem, size_elem(total_quantity));
+
+  return (cart_result_t){.is_ok = true};
 }
 
 cart_result_t store_cart_remove_merch(store_t *store, size_t cart_id,
-                                      const char *merch_name, size_t quantity) {
+                                      const char *merch_name, size_t quantity)
+{
+  elem_t cart_elem;
+  if(!ioopm_hash_table_lookup(store->carts, size_elem(cart_id), &cart_elem))
+  {
+    return (cart_result_t) {.is_ok = false, .error = CART_NOT_FOUND};
+  }
 
-  (void)store;
-  (void)cart_id;
-  (void)merch_name;
-  (void)quantity;
-  return (cart_result_t){.is_ok = false, .error = CART_NOT_FOUND};
+  elem_t merch_id_elem;
+  if(!ioopm_hash_table_lookup(store->merch_ids, c_str_elem(merch_name), &merch_id_elem))
+  {
+    return (cart_result_t) {.is_ok = false, .error = MERCH_NOT_FOUND};
+  }
+
+  ioopm_hash_table_t *cart = cart_elem.p;
+  elem_t cart_quant_elem;
+  if(!ioopm_hash_table_lookup(cart, merch_id_elem, &cart_quant_elem))
+  {
+    //add another error type specific for remove
+    return (cart_result_t) {.is_ok = false, .error = MERCH_NOT_FOUND};
+  }
+
+  size_t cart_quant = cart_quant_elem.sz;
+
+  if(cart_quant < quantity)
+  {
+    return (cart_result_t) {.is_ok = false, .error = QUANTITY_TOO_LARGE};
+  }
+  
+  if(cart_quant == quantity)
+  {
+    elem_t _;
+    assert(ioopm_hash_table_remove(cart, merch_id_elem, &_));
+  }
+  else
+  {
+    ioopm_hash_table_insert(cart, merch_id_elem, size_elem(cart_quant - quantity));
+  }
+
+  elem_t reserved_elem;
+  assert(ioopm_hash_table_lookup(store->reserved_stock, merch_id_elem, &reserved_elem));
+  size_t reserved = reserved_elem.sz;
+  assert(reserved >= quantity);
+
+  ioopm_hash_table_insert(store->reserved_stock, merch_id_elem, size_elem(reserved - quantity));
+
+  return (cart_result_t){.is_ok = true};
 }
 
 bool store_cart_cost(store_t *store, size_t cart_id, size_t *out_cost) {
-  (void)store;
-  (void)cart_id;
-  (void)out_cost;
-  return false;
+  
+  size_t cost = 0;
+
+  elem_t cart_elem;
+  if(!ioopm_hash_table_lookup(store->carts, size_elem(cart_id), &cart_elem))
+  {
+    return false;
+  }
+
+  ioopm_hash_table_t *cart = cart_elem.p;
+  ioopm_hash_table_iterator_t *iter = ioopm_hash_table_iterator_create(cart);
+
+  while(!ioopm_hash_table_iterator_at_end(iter))
+  {
+    elem_t merch_id_elem = ioopm_hash_table_iterator_current_key(iter);
+    elem_t quantity_elem = ioopm_hash_table_iterator_current_value(iter);
+
+    elem_t merch_elem;
+    assert(ioopm_hash_table_lookup(store->merch, merch_id_elem, &merch_elem));
+
+    size_t quantity = quantity_elem.sz;
+    merch_t *merch = merch_elem.p;
+    
+    cost += (quantity * (merch->price));
+
+    ioopm_hash_table_iterator_advance(iter);
+  }
+
+
+  *out_cost = cost;
+  return true;
 }
 
 bool store_cart_checkout(store_t *store, size_t cart_id) {
@@ -434,7 +562,7 @@ static char *toupperDupe(const char *str) {
   return upper;
 }
 
-static void remove_merch_form_list(elem_t merch_elem) {
+static void remove_merch_from_list(elem_t merch_elem) {
   merch_t *merch = (merch_t *)merch_elem.p;
   free(merch->name);
   free(merch->desc);
@@ -442,6 +570,6 @@ static void remove_merch_form_list(elem_t merch_elem) {
 }
 
 static void remove_cart(elem_t cart_elem) {
-  cart_t *cart = cart_elem.p;
-  ioopm_hash_table_destroy(cart->items);
+  ioopm_hash_table_t *cart = cart_elem.p;
+  ioopm_hash_table_destroy(cart);
 }

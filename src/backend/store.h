@@ -17,7 +17,7 @@ typedef RESULT(shelf_storage_t, search_error_t) get_shelf_storage_result_t;
 typedef enum cart_error {
   CART_NOT_FOUND,
   QUANTITY_TOO_LARGE,
-  MERCH_NOT_IN_STORE,
+  MERCH_NOT_FOUND,
 } cart_error_t;
 
 typedef RESULT_VOID(cart_error_t) cart_result_t;

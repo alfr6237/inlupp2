@@ -21,7 +21,7 @@ typedef struct shelf {
 
 typedef enum replenish_error {
   MERCH_CONFLICT,
-  MERCH_NOT_FOUND
+  MERCH_NOT_IN_STORE
 } replenish_error_t;
 
 typedef RESULT_VOID(replenish_error_t) replenish_result_t;

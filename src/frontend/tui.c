@@ -285,7 +285,7 @@ static void replenish(store_t *store) {
              "failed\n",
              shelf_name.c, shelf_name.n);
       break;
-    case MERCH_NOT_FOUND:
+    case MERCH_NOT_IN_STORE:
       printf("Merch with name '%s' not found in store, replenish failed\n",
              name);
       break;
