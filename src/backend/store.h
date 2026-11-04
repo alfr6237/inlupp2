@@ -1,45 +1,13 @@
 #pragma once
 #include "../../vendor/hash_table.h"
+#include "common.h"
 #include "merch.h"
 #include "result.h"
-#include "shelf.h"
 #include <stddef.h>
-
-typedef enum edit_error { NEW_NAME_EXIST, OLD_NAME_NOT_FOUND } edit_error_t;
-typedef RESULT_VOID(edit_error_t) edit_result_t;
-
-typedef enum serch_error { NOT_FOUND } search_error_t;
-
-typedef struct store store_t;
-
-typedef RESULT(shelf_storage_t, search_error_t) get_shelf_storage_result_t;
-
-typedef enum cart_error {
-  CART_NOT_FOUND,
-  QUANTITY_TOO_LARGE,
-  MERCH_NOT_IN_STORE,
-  MERCH_NOT_IN_CART,
-} cart_error_t;
-
-typedef RESULT_VOID(cart_error_t) cart_result_t;
 
 /// @description store represents the entire backend of the program and is
 /// responsible for coordinating merches shelves and later carts when
 /// implemented.
-struct store {
-  ioopm_hash_table_t *merch_ids; // merch name to merch_id
-  ioopm_hash_table_t *shelf_ids; // shelf to shelf_id
-
-  ioopm_hash_table_t *shelfs;    // shelf_id to shelf_storage
-  ioopm_hash_table_t *merch;     // merch_id to merch
-  ioopm_hash_table_t *locations; // merch_id to link list of shelf_id
-  ioopm_hash_table_t *
-      reserved_stock; // merch_id to how much of this merch is reserved by carts
-  ioopm_hash_table_t *carts; // cart_id to cart
-
-  size_t current_id;      // id for shelves and merchandise
-  size_t current_cart_id; // id for carts
-};
 
 /// @brief creates a store
 /// @return a pointer to a initialized store_t with no merch or shelves

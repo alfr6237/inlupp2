@@ -12,6 +12,3 @@
     bool is_ok;                                                                \
     E error;                                                                   \
   }
-
-// Kan vara lite mer nice en ett enda enum då vi nu kan switcha på ett error och
-// veta att det inte är succes tex
