@@ -81,9 +81,8 @@ void store_destroy(store_t *store) {
 }
 
 bool merch_exists(store_t *store, const char *merch_name) {
-  (void)store;
-  (void)merch_name;
-  return false;
+    return ioopm_hash_table_has_key(
+        store->merch_ids, c_str_elem(merch_name));
 }
 
 // kanske olika fkn sviter för de olika ht:na i store? återanvändning?
@@ -217,7 +216,8 @@ bool store_remove_merch(store_t *store, const char *merch_name) {
 
   elem_t _;
 
-  assert(ioopm_hash_table_remove(store->merch, merch_id, &_));
+  bool removed = ioopm_hash_table_remove(store->merch, merch_id, &_);
+  assert(removed);
 
   // TODO: extract to a helper function to inrease readabillity
   ioopm_hash_table_iterator_t *carts_iter =
@@ -255,13 +255,15 @@ edit_result_t store_edit_merch(store_t *store, const char *old_name,
   }
 
   elem_t merch_id;
-  assert(ioopm_hash_table_remove(store->merch_ids, c_str_elem(old_name),
-                                 &merch_id));
+  bool removed = ioopm_hash_table_remove(store->merch_ids, c_str_elem(old_name),
+                                 &merch_id);
+  assert(removed);
 
   merch_t *merch = merch_create(new_name, new_desc, new_price);
 
   ioopm_hash_table_insert(store->merch, merch_id, ptr_elem(merch));
-  ioopm_hash_table_insert(store->merch_ids, c_str_elem(new_name), merch_id);
+  //ert ht har ägandeskap över name istället för callern (new_name)
+  ioopm_hash_table_insert(store->merch_ids, c_str_elem(merch->name), merch_id);
 
   return (edit_result_t){.is_ok = true};
 }
@@ -292,6 +294,10 @@ bool store_cart_remove(store_t *store, size_t cart_id) {
 size_t store_count_stock(store_t *store, const char *merch_name) {
   size_t count = 0;
   ioopm_list_t *stock = store_get_stock(store, merch_name);
+  //handling om stock inte finns
+  if (stock == NULL) {
+    return 0;
+}
 
   ioopm_list_iterator_t *iter = ioopm_list_iterator_create(stock);
 
@@ -376,7 +382,8 @@ cart_result_t store_cart_remove_merch(store_t *store, size_t cart_id,
 
   if (cart_quant == quantity) {
     elem_t _;
-    assert(ioopm_hash_table_remove(cart, merch_id_elem, &_));
+    bool removed = ioopm_hash_table_remove(cart, merch_id_elem, &_);
+    assert(removed);
   } else {
     ioopm_hash_table_insert(cart, merch_id_elem,
                             size_elem(cart_quant - quantity));
@@ -488,13 +495,14 @@ static void remove_cart(store_t *store, ioopm_hash_table_t *cart) {
     elem_t merch_id_elem = ioopm_hash_table_iterator_current_key(iter);
     elem_t quantity_elem = ioopm_hash_table_iterator_current_value(iter);
 
-    elem_t resered_elem;
+    //fixed spelling -> ok since the other reserved_elem are in different scopes
+    elem_t reserved_elem;
     assert(ioopm_hash_table_lookup(store->reserved_stock, merch_id_elem,
-                                   &resered_elem));
+                                   &reserved_elem));
 
     size_t quantity = quantity_elem.sz;
-    size_t reserved = resered_elem.sz;
-    assert(quantity_elem.sz <= resered_elem.sz);
+    size_t reserved = reserved_elem.sz;
+    assert(quantity_elem.sz <= reserved_elem.sz);
 
     ioopm_hash_table_insert(store->reserved_stock, merch_id_elem,
                             size_elem(reserved - quantity));
@@ -647,7 +655,7 @@ static char *toupperDupe(const char *str) {
   char *upper = calloc(len + 1, sizeof(char));
 
   for (size_t i = 0; i < len; i++) {
-    upper[i] = toupper(str[i]);
+    upper[i] = toupper((unsigned char)str[i]);
   }
   upper[len] = 0;
   return upper;
