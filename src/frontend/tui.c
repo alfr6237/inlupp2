@@ -38,6 +38,12 @@ static void show_stock(const store_t *store);
 static void replenish(store_t *store);
 static void print_stock(ioopm_list_t *stock_list);
 static void print_merch(merch_t *merch);
+static void create_cart(store_t *store);
+static void cart_remove(store_t *store);
+static void add_to_cart(store_t *store);
+static void remove_from_cart(store_t *store);
+static void calculate_cost(store_t *store);
+static void checkout(store_t *store);
 
 static bool confirmation(const char *question, char code);
 static bool is_shelf_name(const char *str);
@@ -86,6 +92,30 @@ bool execute_action(action_t action, store_t *store) {
     puts("\nReplenish merch");
     replenish(store);
     break;
+  case CREATE_CART:
+    puts("\nCreate cart");
+    create_cart(store);
+    break;
+  case REMOVE_CART:
+    puts("\nRemove cart");
+    cart_remove(store);
+    break;
+  case ADD_TO_CART:
+    puts("\nAdd to cart");
+    add_to_cart(store);
+    break;
+  case REMOVE_FROM_CART:
+    puts("\nRemove from cart");
+    remove_from_cart(store);
+    break;
+  case CALCULATE_COST:
+    puts("\nCalculate cost");
+    calculate_cost(store);
+    break;
+  case CHECKOUT:
+    puts("\nCheckout");
+    checkout(store);
+    break;  
   case QUIT:
     return true;
   default:
@@ -100,6 +130,12 @@ action_t get_action(void) {
                          "[E] Edit merhcendise\n"
                          "[S] Show stock\n"
                          "[P] Replenish merchendise\n"
+                         "[C] Create a new cart\n"
+                         "[R] Remove a cart\n"
+                         "[+] Add to cart\n"
+                         "[-] Remove from cart\n"
+                         "[=] Calculate cost\n"
+                         "[O] Checkout cart from store\n"
                          "[Q] Quit\n\n"
                          "Action: ";
 
@@ -129,6 +165,24 @@ answer_t convert_action_fn(const char *str) {
   case 'P':
     a = REPLENISH;
     break;
+  case 'C':
+    a = CREATE_CART;
+    break;
+  case 'R':
+    a = REMOVE_CART;
+    break;
+  case '+':
+    a = ADD_TO_CART;
+    break;
+  case '-':
+    a = REMOVE_FROM_CART;
+    break;
+  case '=':
+    a = CALCULATE_COST;
+    break;
+  case 'O':
+    a = CHECKOUT;
+    break;
   case 'Q':
     a = QUIT;
     break;
@@ -149,12 +203,19 @@ bool check_action_fn(const char *str) {
   case 'E':
   case 'S':
   case 'P':
+  case 'C':
+  case 'R':
+  case '+':
+  case '-':
+  case '=':
+  case 'O':
   case 'Q':
     return true;
   default:
     return false;
   }
 }
+
 static void add_merch(store_t *store) {
   char *name = ask_question_string("Name: ");
   char *desc = ask_question_string("Description: ");
@@ -285,7 +346,7 @@ static void replenish(store_t *store) {
              "failed\n",
              shelf_name.c, shelf_name.n);
       break;
-    case MERCH_NOT_IN_STORE:
+    case MERCH_NOT_FOUND:
       printf("Merch with name '%s' not found in store, replenish failed\n",
              name);
       break;
@@ -361,4 +422,133 @@ static bool is_shelf_name(const char *str) {
     return false;
   }
   return true;
+}
+
+static void create_cart(store_t *store)
+{
+  size_t cart_id = store_add_cart(store);
+  puts("\nA new cart has been added to the store");
+  printf("\nID of new cart: %zu\n", cart_id);
+}
+
+static void cart_remove(store_t *store)
+{
+  // printa id:n på carts?
+  size_t cart_id = ask_question_size("ID of cart to be removed: ");
+
+  const char *confirm_fmt = "Do you really wish to remove %zu?\n";
+
+  const int len = snprintf(NULL, 0, confirm_fmt, cart_id);
+  assert(len > 0);
+
+  char *buffer = calloc(len + 1, sizeof(char));
+  snprintf(buffer, len, confirm_fmt, cart_id);
+
+  if (confirmation(buffer, 'Y')) {
+    if (!store_cart_remove(store, cart_id)) {
+      printf("Merch with name %zu doesn't exist, merch not removed\n", cart_id);
+    }
+  }
+
+  free(buffer);
+}
+
+static void add_to_cart(store_t *store) 
+{
+  size_t cart_id = ask_question_size("Cart ID: ");
+  char *merch_name = ask_question_string("Name of merch: ");
+  size_t quantity = ask_question_size("Quantity to add to cart: ");
+
+  const cart_result_t result = store_cart_add_merch(store, cart_id, merch_name, quantity);
+
+  if(!result.is_ok)
+  {
+    switch(result.error)
+    {
+      case CART_NOT_FOUND:
+        printf("Cart with ID %zu does not exist in store, action failed\n",
+               cart_id);
+        break;
+      case MERCH_NOT_IN_STORE:
+        printf("Merch with name %s does not exist in store, action failed\n",
+               merch_name);
+        break;
+      case QUANTITY_TOO_LARGE:
+        printf("Quantity of size %zu for merch %s is not available for reservation, action failed\n",
+               quantity, merch_name);
+        break;
+      case MERCH_NOT_IN_CART:
+        //dummy field, never get here
+        break;
+    }
+  }
+
+  free(merch_name);
+}
+
+static void remove_from_cart(store_t *store)
+{
+  size_t cart_id = ask_question_size("Cart ID: ");
+  char *merch_name = ask_question_string("Name of merch: ");
+  size_t quantity = ask_question_size("Quantity to remove from cart: ");
+
+  const cart_result_t result = store_cart_remove_merch(store, cart_id, merch_name, quantity);
+
+  if(!result.is_ok)
+  {
+    switch(result.error)
+    {
+      case CART_NOT_FOUND:
+        printf("Cart with ID %zu does not exist in store, action failed\n",
+               cart_id);
+        break;
+      case MERCH_NOT_IN_STORE:
+        printf("Merch with name %s does not exist in store, action failed\n",
+               merch_name);
+        break;
+      case MERCH_NOT_IN_CART:
+        printf("Merch with name %s was not found in cart with ID: %zu, action failed\n",
+               merch_name, cart_id);
+        break;
+      case QUANTITY_TOO_LARGE:
+        printf("Quantity of size %zu for merch %s is larger than quantity in cart with ID: %zu, action failed\n",
+               quantity, merch_name, cart_id);
+        break;
+    }
+  }
+
+  free(merch_name);
+}
+
+static void calculate_cost(store_t *store)
+{
+  size_t cart_id = ask_question_size("Cart ID: ");
+
+  size_t cart_cost = 0;
+  bool success = store_cart_cost(store, cart_id, &cart_cost);
+
+  if(success)
+  {
+    printf("The cost of cart with ID: %zu is %zu", cart_id, cart_cost);
+  }
+  else
+  {
+    printf("A cart with ID: %zu does not exist in store", cart_id);
+  }
+}
+
+static void checkout(store_t *store)
+{
+  size_t cart_id = ask_question_size("Cart ID to checkout: ");
+
+  bool sucess = store_cart_checkout(store, cart_id);
+
+  if(sucess)
+  {
+    printf("Cart with ID: %zu has sucessfully been checked out", cart_id);
+  }
+  else
+  {
+    printf("Cart with ID: %zu does not exist in store", cart_id);
+  }
 }
