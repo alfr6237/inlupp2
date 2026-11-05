@@ -189,7 +189,8 @@ edit_result_t store_edit_merch(store_t *store, const char *old_name,
   merch_t *merch = merch_create(new_name, new_desc, new_price);
 
   ioopm_hash_table_insert(store->merch, merch_id, ptr_elem(merch));
-  ioopm_hash_table_insert(store->merch_ids, c_str_elem(new_name), merch_id);
+  // ht har ägandeskap över name istället för callern (new_name)
+  ioopm_hash_table_insert(store->merch_ids, c_str_elem(merch->name), merch_id);
 
   return (edit_result_t){.is_ok = true};
 }
@@ -210,29 +211,26 @@ static merch_t *merch_create(const char *name, const char *desc,
 
 static void remove_merch_value(elem_t merch) { merch_destroy(merch.p); }
 
-static char *toupperDupe(const char *str) {
+//optimized merch_less_than
+static bool merch_less_than(elem_t merch_elem_a, elem_t merch_elem_b)
+{
+    merch_t *merch_a = merch_elem_a.p;
+    merch_t *merch_b = merch_elem_b.p;
 
-  const size_t len = strlen(str);
-  char *upper = calloc(len + 1, sizeof(char));
+    const unsigned char *a = (const unsigned char *)merch_a->name;
+    const unsigned char *b = (const unsigned char *)merch_b->name;
 
-  for (size_t i = 0; i < len; i++) {
-    upper[i] = toupper(str[i]);
-  }
-  upper[len] = 0;
-  return upper;
-}
+    while (*a && *b) {
+        int char_a = toupper(*a);
+        int char_b = toupper(*b);
 
-static bool merch_less_than(elem_t merch_elem_a, elem_t merch_elem_b) {
-  merch_t *merch_a = (merch_t *)merch_elem_a.p;
-  merch_t *merch_b = (merch_t *)merch_elem_b.p;
+        if (char_a != char_b) {
+            return char_a < char_b;
+        }
 
-  char *upper_name_a = toupperDupe(merch_a->name);
-  char *upper_name_b = toupperDupe(merch_b->name);
+        a++;
+        b++;
+    }
 
-  int result = strcmp(upper_name_a, upper_name_b);
-
-  free(upper_name_a);
-  free(upper_name_b);
-
-  return result < 0;
+    return *a < *b;
 }
