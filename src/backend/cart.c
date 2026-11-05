@@ -217,13 +217,13 @@ void remove_cart(store_t *store, ioopm_hash_table_t *cart) {
     elem_t merch_id_elem = ioopm_hash_table_iterator_current_key(iter);
     elem_t quantity_elem = ioopm_hash_table_iterator_current_value(iter);
 
-    elem_t resered_elem;
+    elem_t reserved_elem;
     assert(ioopm_hash_table_lookup(store->reserved_stock, merch_id_elem,
-                                   &resered_elem));
+                                   &reserved_elem));
 
     size_t quantity = quantity_elem.sz;
-    size_t reserved = resered_elem.sz;
-    assert(quantity_elem.sz <= resered_elem.sz);
+    size_t reserved = reserved_elem.sz;
+    assert(quantity_elem.sz <= reserved_elem.sz);
 
     ioopm_hash_table_insert(store->reserved_stock, merch_id_elem,
                             size_elem(reserved - quantity));

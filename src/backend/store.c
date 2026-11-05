@@ -108,8 +108,11 @@ ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name) {
 
 size_t store_count_stock(store_t *store, const char *merch_name) {
   size_t count = 0;
+  //handling om stock inte finns
   ioopm_list_t *stock = store_get_stock(store, merch_name);
-
+  if (stock == NULL) {
+    return 0;
+}
   ioopm_list_iterator_t *iter = ioopm_list_iterator_create(stock);
 
   while (!ioopm_list_iterator_at_end(iter)) {
