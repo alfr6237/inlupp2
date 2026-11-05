@@ -1,4 +1,3 @@
-#include "../src/backend/merch.h"
 #include "../src/backend/store.h"
 #include "../vendor/linked_list_iterator.h"
 
@@ -36,11 +35,6 @@ static const size_t quantities[4] = {64, 128, 256, 512};
 
 static bool shelf_name_eql(shelf_name_t shelf_a, shelf_name_t shelf_b) {
   return shelf_a.c == shelf_b.c && shelf_a.n == shelf_b.n;
-}
-
-void test_create_merch(void) {
-  merch_t *m = merch_create(merch_names[0], descriptions[0], prices[0]);
-  merch_destroy(m);
 }
 
 void test_create_store(void) {
@@ -431,10 +425,7 @@ int main(void) {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  if ((CU_add_test(backend_test_suite, "Create merch", test_create_merch) ==
-       NULL) ||
-
-      (CU_add_test(backend_test_suite, "Create store", test_create_store) ==
+  if ((CU_add_test(backend_test_suite, "Create store", test_create_store) ==
        NULL) ||
       (CU_add_test(backend_test_suite, "Add/remove merch to/from store",
                    test_add_remove_merch) == NULL) ||
