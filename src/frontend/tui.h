@@ -15,4 +15,4 @@
 ///
 /// @note The caller retains ownership of the store.
 ///
-void event_loop(store_t *store);
+void ioopm_event_loop(ioopm_store_t *store);

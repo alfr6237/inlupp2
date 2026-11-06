@@ -10,4 +10,4 @@
 
 ///@brief destroy a merchandise by freeing the memory it owns
 ///@param merchandise to destroy
-void merch_destroy(merch_t *merch);
+void ioopm_merch_destroy(ioopm_merch_t *merch);

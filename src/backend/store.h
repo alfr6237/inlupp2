@@ -11,11 +11,11 @@
 
 /// @brief creates a store
 /// @return a pointer to a initialized store_t with no merch or shelves
-store_t *store_create(void);
+ioopm_store_t *ioopm_store_create(void);
 
 /// @brief destroys a store
 /// @param store the store to be destroyed
-void store_destroy(store_t *store);
+void ioopm_store_destroy(ioopm_store_t *store);
 
 /// @brief adds a merchandise to the store
 /// @param store the store to operate on, must not be NULL
@@ -28,19 +28,19 @@ void store_destroy(store_t *store);
 /// @note this does not add any stock of the merhcendise to any shelf
 /// @note if the merchandise was not successfully added there already exists a
 /// merchandise with the same name
-bool store_add_merch(store_t *store, const char *name, const char *desc,
-                     const size_t price);
+bool ioopm_store_add_merch(ioopm_store_t *store, const char *name,
+                           const char *desc, const size_t price);
 
 /// @brief removes merch from the store
 /// @param store the store to operate on, must not be NULL
 /// @param merch_name the name of the merch ot be removed
 /// @return if the merch was removed or not
-bool store_remove_merch(store_t *store, const char *merch_name);
+bool ioopm_store_remove_merch(ioopm_store_t *store, const char *merch_name);
 
 /// @brief returns a list of all the merch added to the store
 /// @param store the store to operate on, must not be NULL
 /// @returns list of the merch in the store in alphabetical order
-ioopm_list_t *store_merch_list(const store_t *store);
+ioopm_list_t *ioopm_store_merch_list(const ioopm_store_t *store);
 
 /// @brief retrives a pointer to a merch_t in the store given the merchandises
 /// name
@@ -48,7 +48,8 @@ ioopm_list_t *store_merch_list(const store_t *store);
 /// @param merch_name the name of the merchandise
 /// @return the merch coresponding to the merch_name or NULL if merch_name
 /// is not recognized by the store
-const merch_t *store_get_merch(store_t *store, const char *merch_name);
+const ioopm_merch_t *ioopm_store_get_merch(ioopm_store_t *store,
+                                           const char *merch_name);
 
 /// @brief adds merch to a shelf
 /// @param store the store to operate on, must not be NULL
@@ -58,9 +59,10 @@ const merch_t *store_get_merch(store_t *store, const char *merch_name);
 /// @return if successful the is_ok field is set to true and the error field
 /// should be ignored, if is_ok is set to false the error field represents what
 /// went wrong
-replenish_result_t store_replenish_merch(store_t *store, const char *merch_name,
-                                         const shelf_name_t shelf_name,
-                                         const size_t quantity);
+ioopm_replenish_result_t
+ioopm_store_replenish_merch(ioopm_store_t *store, const char *merch_name,
+                            const ioopm_shelf_name_t shelf_name,
+                            const size_t quantity);
 
 /// @brief edit a merchandise in the store
 /// @param store the store to operate on, must not be NULL
@@ -71,9 +73,11 @@ replenish_result_t store_replenish_merch(store_t *store, const char *merch_name,
 /// @return if successful the is_ok field is set to true and the error field
 /// should be ignored, if is_ok is set to false the error field represents what
 /// went wrong
-edit_result_t store_edit_merch(store_t *store, const char *current_name,
-                               const char *new_name, const char *new_desc,
-                               const size_t new_price);
+ioopm_edit_result_t ioopm_store_edit_merch(ioopm_store_t *store,
+                                           const char *current_name,
+                                           const char *new_name,
+                                           const char *new_desc,
+                                           const size_t new_price);
 
 /// @brief get the shelf name and how much merch is stored on that shelf for
 /// every shelf that stocks this merch
@@ -84,17 +88,18 @@ edit_result_t store_edit_merch(store_t *store, const char *current_name,
 ///
 /// @note the caller of this functions owns the returned list and is responsible
 /// for calling ioopm_list_destroy('returned list'); to avoid memory leaks
-ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name);
+ioopm_list_t *ioopm_store_get_stock(const ioopm_store_t *store,
+                                    const char *merch_name);
 
 /// @brief add a new cart to the store
 /// @param store the store to operate on, must not be NULL
 /// @return the id that refers to the new cart
-size_t store_add_cart(store_t *store);
+size_t ioopm_store_add_cart(ioopm_store_t *store);
 
 /// @brief removes an existing cart from the store
 /// @param store the store to operate on, must not be NULL
 /// @return true if the cart existed in the store, else false
-bool store_cart_remove(store_t *store, size_t cart_id);
+bool ioopm_store_cart_remove(ioopm_store_t *store, size_t cart_id);
 
 /// @brief add merch to a cart
 /// @param store the store to operate on, must not be NULL
@@ -104,8 +109,10 @@ bool store_cart_remove(store_t *store, size_t cart_id);
 /// @return if successful the is_ok field is set to true and the error field
 /// should be ignored, if is_ok is set to false the error field represents what
 /// went wrong
-cart_result_t store_cart_add_merch(store_t *store, size_t cart_id,
-                                   const char *merch_name, size_t quantity);
+ioopm_cart_result_t ioopm_store_cart_add_merch(ioopm_store_t *store,
+                                               size_t cart_id,
+                                               const char *merch_name,
+                                               size_t quantity);
 
 /// @brief removes merch from a cart
 /// @param store the store to operate on, must not be NULL
@@ -115,8 +122,10 @@ cart_result_t store_cart_add_merch(store_t *store, size_t cart_id,
 /// @return if successful the is_ok field is set to true and the error field
 /// should be ignored, if is_ok is set to false the error field represents what
 /// went wrong
-cart_result_t store_cart_remove_merch(store_t *store, size_t cart_id,
-                                      const char *merch_name, size_t quantity);
+ioopm_cart_result_t ioopm_store_cart_remove_merch(ioopm_store_t *store,
+                                                  size_t cart_id,
+                                                  const char *merch_name,
+                                                  size_t quantity);
 
 /// @brief calculats the cost of all merch in the given cart
 /// @param store the store to operate on, must not be NULL
@@ -124,7 +133,8 @@ cart_result_t store_cart_remove_merch(store_t *store, size_t cart_id,
 /// @param out_cost out parameter to store the cost in
 /// @return returns false if cart is not in store else true
 /// return false if cart nto found
-bool store_cart_cost(store_t *store, size_t cart_id, size_t *out_cost);
+bool ioopm_store_cart_cost(ioopm_store_t *store, size_t cart_id,
+                           size_t *out_cost);
 
 /// @brief checkout a cart from the store,
 /// this removes stock of the merch carried by cart from shelves in the store
@@ -132,7 +142,7 @@ bool store_cart_cost(store_t *store, size_t cart_id, size_t *out_cost);
 /// @param store the store to operate on, must not be NULL
 /// @param cart_id the cart to checkout
 /// @return returns false if cart is not in store else true
-bool store_cart_checkout(store_t *store, size_t cart_id);
+bool ioopm_store_cart_checkout(ioopm_store_t *store, size_t cart_id);
 
 /// @brief calculates the stock of a merch in the store
 ///
@@ -140,4 +150,4 @@ bool store_cart_checkout(store_t *store, size_t cart_id);
 /// @param store the store to operate on, must not be NULL
 /// @param merch name the merch to caluclate the stock fo
 /// @return the stock quantity
-size_t store_count_stock(store_t *store, const char *merch_name);
+size_t ioopm_store_count_stock(ioopm_store_t *store, const char *merch_name);

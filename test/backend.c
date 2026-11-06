@@ -23,7 +23,7 @@ static const char *descriptions[4] = {
     "citrus",
 };
 
-static const shelf_name_t shelf_names[4] = {
+static const ioopm_shelf_name_t shelf_names[4] = {
     {.c = 'A', .n = 1},
     {.c = 'B', .n = 2},
     {.c = 'C', .n = 3},
@@ -33,83 +33,84 @@ static const shelf_name_t shelf_names[4] = {
 static const size_t prices[4] = {1, 2, 3, 4};
 static const size_t quantities[4] = {64, 128, 256, 512};
 
-static bool shelf_name_eql(shelf_name_t shelf_a, shelf_name_t shelf_b) {
+static bool shelf_name_eql(ioopm_shelf_name_t shelf_a,
+                           ioopm_shelf_name_t shelf_b) {
   return shelf_a.c == shelf_b.c && shelf_a.n == shelf_b.n;
 }
 
 void test_create_store(void) {
-  store_t *store = store_create();
-  store_destroy(store);
+  ioopm_store_t *store = ioopm_store_create();
+  ioopm_store_destroy(store);
 }
 
 void test_add_remove_merch(void) {
 
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
-  const merch_t *merch = store_get_merch(store, merch_names[0]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  const ioopm_merch_t *merch = ioopm_store_get_merch(store, merch_names[0]);
 
   CU_ASSERT(strcmp(merch_names[0], merch->name) == 0);
   CU_ASSERT(strcmp(descriptions[0], merch->desc) == 0);
   CU_ASSERT_EQUAL(merch->price, prices[0]);
 
-  store_remove_merch(store, merch_names[0]);
+  ioopm_store_remove_merch(store, merch_names[0]);
 
-  CU_ASSERT_PTR_NULL(store_get_merch(store, merch_names[0]));
+  CU_ASSERT_PTR_NULL(ioopm_store_get_merch(store, merch_names[0]));
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_replenish_merch_not_found(void) {
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  const replenish_result_t result = store_replenish_merch(
+  const ioopm_replenish_result_t result = ioopm_store_replenish_merch(
       store, merch_names[0], shelf_names[0], quantities[0]);
 
   CU_ASSERT_FALSE(result.is_ok)
   CU_ASSERT_EQUAL(result.error, MERCH_NOT_FOUND);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_replenish_merch_conflict(void) {
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
-  store_add_merch(store, merch_names[1], descriptions[1], prices[1]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_add_merch(store, merch_names[1], descriptions[1], prices[1]);
 
-  replenish_result_t result = store_replenish_merch(
+  ioopm_replenish_result_t result = ioopm_store_replenish_merch(
       store, merch_names[0], shelf_names[0], quantities[0]);
   CU_ASSERT_TRUE(result.is_ok);
-  result = store_replenish_merch(store, merch_names[1], shelf_names[0],
-                                 quantities[0]);
+  result = ioopm_store_replenish_merch(store, merch_names[1], shelf_names[0],
+                                       quantities[0]);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_EQUAL(result.error, MERCH_CONFLICT);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_replenish_many(void) {
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[1]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[1]);
 
-  replenish_result_t rep_result = store_replenish_merch(
+  ioopm_replenish_result_t rep_result = ioopm_store_replenish_merch(
       store, merch_names[0], shelf_names[0], quantities[0]);
 
   CU_ASSERT_TRUE(rep_result.is_ok);
-  ioopm_list_t *list = store_get_stock(store, merch_names[0]);
+  ioopm_list_t *list = ioopm_store_get_stock(store, merch_names[0]);
   elem_t shelf_elem = ioopm_list_head(list);
-  shelf_t *shelf = shelf_elem.p;
+  ioopm_shelf_t *shelf = shelf_elem.p;
   CU_ASSERT_TRUE(shelf_name_eql(shelf->shelf_name, shelf_names[0]));
   CU_ASSERT_EQUAL(shelf->quantity, quantities[0]);
 
-  rep_result = store_replenish_merch(store, merch_names[0], shelf_names[0],
-                                     quantities[1]);
+  rep_result = ioopm_store_replenish_merch(store, merch_names[0],
+                                           shelf_names[0], quantities[1]);
 
   ioopm_list_destroy(list);
   CU_ASSERT_TRUE(rep_result.is_ok);
-  list = store_get_stock(store, merch_names[0]);
+  list = ioopm_store_get_stock(store, merch_names[0]);
   shelf_elem = ioopm_list_last(list);
   shelf = shelf_elem.p;
   CU_ASSERT_TRUE(shelf_name_eql(shelf->shelf_name, shelf_names[0]));
@@ -117,86 +118,90 @@ void test_replenish_many(void) {
 
   ioopm_list_destroy(list);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_merch_edit_name_not_found(void) {
 
-  store_t *store = store_create();
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_t *store = ioopm_store_create();
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
-  const edit_result_t result = store_edit_merch(
+  const ioopm_edit_result_t result = ioopm_store_edit_merch(
       store, merch_names[1], merch_names[0], descriptions[1], 106);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_EQUAL(result.error, OLD_NAME_NOT_FOUND);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_merch_edit_name_conflict(void) {
 
-  store_t *store = store_create();
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_t *store = ioopm_store_create();
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
-  store_add_merch(store, merch_names[1], descriptions[1], prices[1]);
+  ioopm_store_add_merch(store, merch_names[1], descriptions[1], prices[1]);
 
-  const edit_result_t result = store_edit_merch(
+  const ioopm_edit_result_t result = ioopm_store_edit_merch(
       store, merch_names[0], merch_names[1], descriptions[1], prices[1]);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_EQUAL(result.error, NEW_NAME_EXIST);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_merch_edit_success(void) {
-  store_t *store = store_create();
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_t *store = ioopm_store_create();
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
-  const edit_result_t result = store_edit_merch(
+  const ioopm_edit_result_t result = ioopm_store_edit_merch(
       store, merch_names[0], merch_names[1], descriptions[1], prices[1]);
   CU_ASSERT_TRUE(result.is_ok);
 
-  const merch_t *old_merch = store_get_merch(store, merch_names[0]);
+  const ioopm_merch_t *old_merch = ioopm_store_get_merch(store, merch_names[0]);
   CU_ASSERT_PTR_NULL(old_merch);
 
-  const merch_t *new_merch = store_get_merch(store, merch_names[1]);
+  const ioopm_merch_t *new_merch = ioopm_store_get_merch(store, merch_names[1]);
   CU_ASSERT_PTR_NOT_NULL(new_merch);
 
   CU_ASSERT_TRUE(strcmp(new_merch->name, merch_names[1]) == 0);
   CU_ASSERT_TRUE(strcmp(new_merch->desc, descriptions[1]) == 0);
   CU_ASSERT_EQUAL(new_merch->price, prices[1]);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
-void test_store_get_stock_non_existing(void) {
+void test_ioopm_store_get_stock_non_existing(void) {
 
-  store_t *store = store_create();
-  CU_ASSERT_PTR_NULL(store_get_stock(store, merch_names[0]));
+  ioopm_store_t *store = ioopm_store_create();
+  CU_ASSERT_PTR_NULL(ioopm_store_get_stock(store, merch_names[0]));
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
-  ioopm_list_t *stock = store_get_stock(store, merch_names[0]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_list_t *stock = ioopm_store_get_stock(store, merch_names[0]);
   CU_ASSERT_PTR_NOT_NULL(stock);
   CU_ASSERT_TRUE(ioopm_list_is_empty(stock));
 
   ioopm_list_destroy(stock);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
-void test_store_get_stock(void) {
+void test_ioopm_store_get_stock(void) {
 
-  store_t *store = store_create();
-  CU_ASSERT_PTR_NULL(store_get_stock(store, merch_names[0]));
+  ioopm_store_t *store = ioopm_store_create();
+  CU_ASSERT_PTR_NULL(ioopm_store_get_stock(store, merch_names[0]));
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
-  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
-  store_replenish_merch(store, merch_names[0], shelf_names[2], quantities[2]);
-  store_replenish_merch(store, merch_names[0], shelf_names[3], quantities[3]);
-  store_replenish_merch(store, merch_names[0], shelf_names[1], quantities[1]);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[0],
+                              quantities[0]);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[2],
+                              quantities[2]);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[3],
+                              quantities[3]);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[1],
+                              quantities[1]);
 
-  ioopm_list_t *stock = store_get_stock(store, merch_names[0]);
+  ioopm_list_t *stock = ioopm_store_get_stock(store, merch_names[0]);
   CU_ASSERT_PTR_NOT_NULL(stock);
   CU_ASSERT_FALSE(ioopm_list_is_empty(stock));
 
@@ -205,7 +210,7 @@ void test_store_get_stock(void) {
   for (size_t i = 0; !ioopm_list_iterator_at_end(iter); i++) {
 
     elem_t current_elem = ioopm_list_iterator_current(iter);
-    shelf_t *shelf = current_elem.p;
+    ioopm_shelf_t *shelf = current_elem.p;
     CU_ASSERT_EQUAL(shelf->shelf_name.c, shelf_names[i].c);
     CU_ASSERT_EQUAL(shelf->shelf_name.n, shelf_names[i].n);
     CU_ASSERT_EQUAL(shelf->quantity, quantities[i]);
@@ -216,29 +221,29 @@ void test_store_get_stock(void) {
   ioopm_list_iterator_destroy(iter);
   ioopm_list_destroy(stock);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_merch_list(void) {
 
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  ioopm_list_t *empty_list = store_merch_list(store);
+  ioopm_list_t *empty_list = ioopm_store_merch_list(store);
   CU_ASSERT_PTR_NOT_NULL(empty_list);
   CU_ASSERT_TRUE(ioopm_list_is_empty(empty_list));
 
   ioopm_list_destroy(empty_list);
 
   for (size_t i = 0; i < 4; i++) {
-    store_add_merch(store, merch_names[i], descriptions[i], prices[i]);
+    ioopm_store_add_merch(store, merch_names[i], descriptions[i], prices[i]);
   }
 
-  ioopm_list_t *non_empty_list = store_merch_list(store);
+  ioopm_list_t *non_empty_list = ioopm_store_merch_list(store);
   ioopm_list_iterator_t *iter = ioopm_list_iterator_create(non_empty_list);
   for (size_t i = 0; i < 4; i++) {
 
     elem_t current = ioopm_list_iterator_current(iter);
-    merch_t *merch = current.p;
+    ioopm_merch_t *merch = current.p;
 
     CU_ASSERT_TRUE(strcmp(merch_names[i], merch->name) == 0);
     CU_ASSERT_TRUE(strcmp(descriptions[i], merch->desc) == 0);
@@ -251,73 +256,77 @@ void test_merch_list(void) {
   ioopm_list_iterator_destroy(iter);
   ioopm_list_destroy(non_empty_list);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_cart_add_remove(void) {
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
   const size_t random_cart_id = 77777777;
 
-  CU_ASSERT_FALSE(store_cart_remove(store, random_cart_id));
+  CU_ASSERT_FALSE(ioopm_store_cart_remove(store, random_cart_id));
 
-  const size_t cart_id = store_add_cart(store);
+  const size_t cart_id = ioopm_store_add_cart(store);
 
-  CU_ASSERT_TRUE(store_cart_remove(store, cart_id));
+  CU_ASSERT_TRUE(ioopm_store_cart_remove(store, cart_id));
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_cart_add_remove_merch(void) {
 
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
   const size_t random_cart_id = 77777777;
 
-  cart_result_t result =
-      store_cart_add_merch(store, random_cart_id, merch_names[0], 1);
+  ioopm_cart_result_t result =
+      ioopm_store_cart_add_merch(store, random_cart_id, merch_names[0], 1);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == CART_NOT_FOUND);
 
-  result = store_cart_remove_merch(store, random_cart_id, merch_names[0], 0);
+  result =
+      ioopm_store_cart_remove_merch(store, random_cart_id, merch_names[0], 0);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == CART_NOT_FOUND);
 
-  const size_t cart_id = store_add_cart(store);
+  const size_t cart_id = ioopm_store_add_cart(store);
 
-  result = store_cart_add_merch(store, cart_id, "FINNS INTE", 1);
+  result = ioopm_store_cart_add_merch(store, cart_id, "FINNS INTE", 1);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_STORE);
 
-  result = store_cart_remove_merch(store, cart_id, "FINNS INTE", 0);
+  result = ioopm_store_cart_remove_merch(store, cart_id, "FINNS INTE", 0);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_STORE);
 
-  result = store_cart_remove_merch(store, cart_id, merch_names[0], 0);
+  result = ioopm_store_cart_remove_merch(store, cart_id, merch_names[0], 0);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == MERCH_NOT_IN_CART);
 
-  result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+  result =
+      ioopm_store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_TRUE(result.error == QUANTITY_TOO_LARGE);
 
-  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
-
-  result = store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
-  CU_ASSERT_TRUE(result.is_ok);
-
-  result = store_cart_remove_merch(store, cart_id, merch_names[0],
-                                   quantities[0] + 1);
-  CU_ASSERT_FALSE(result.is_ok);
-  CU_ASSERT_TRUE(result.error == QUANTITY_TOO_LARGE);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[0],
+                              quantities[0]);
 
   result =
-      store_cart_remove_merch(store, cart_id, merch_names[0], quantities[0]);
+      ioopm_store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_TRUE(result.is_ok);
 
-  store_destroy(store);
+  result = ioopm_store_cart_remove_merch(store, cart_id, merch_names[0],
+                                         quantities[0] + 1);
+  CU_ASSERT_FALSE(result.is_ok);
+  CU_ASSERT_TRUE(result.error == QUANTITY_TOO_LARGE);
+
+  result = ioopm_store_cart_remove_merch(store, cart_id, merch_names[0],
+                                         quantities[0]);
+  CU_ASSERT_TRUE(result.is_ok);
+
+  ioopm_store_destroy(store);
 }
 
 void test_cart_calculate_cost(void) {
@@ -325,78 +334,82 @@ void test_cart_calculate_cost(void) {
   const size_t random_cart_id = 77777777;
   size_t cost = 0;
 
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
-  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
-  CU_ASSERT_FALSE(store_cart_cost(store, random_cart_id, &cost));
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[0],
+                              quantities[0]);
+  CU_ASSERT_FALSE(ioopm_store_cart_cost(store, random_cart_id, &cost));
 
-  const size_t cart_id = store_add_cart(store);
+  const size_t cart_id = ioopm_store_add_cart(store);
 
-  CU_ASSERT_TRUE(store_cart_cost(store, cart_id, &cost));
+  CU_ASSERT_TRUE(ioopm_store_cart_cost(store, cart_id, &cost));
   CU_ASSERT_EQUAL(cost, 0);
 
-  cart_result_t result =
-      store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+  ioopm_cart_result_t result =
+      ioopm_store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
   CU_ASSERT_TRUE(result.is_ok);
 
-  store_cart_cost(store, cart_id, &cost);
-  CU_ASSERT_TRUE(store_cart_cost(store, cart_id, &cost));
+  ioopm_store_cart_cost(store, cart_id, &cost);
+  CU_ASSERT_TRUE(ioopm_store_cart_cost(store, cart_id, &cost));
   CU_ASSERT_EQUAL(cost, prices[0] * quantities[0]);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_cart_checkout(void) {
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
   size_t random_cart_id = 7777777;
 
-  CU_ASSERT_FALSE(store_cart_checkout(store, random_cart_id));
+  CU_ASSERT_FALSE(ioopm_store_cart_checkout(store, random_cart_id));
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
-  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
-  store_replenish_merch(store, merch_names[0], shelf_names[1], quantities[1]);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[0],
+                              quantities[0]);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[1],
+                              quantities[1]);
 
-  size_t cart_id = store_add_cart(store);
+  size_t cart_id = ioopm_store_add_cart(store);
 
-  size_t merch_stock = store_count_stock(store, merch_names[0]);
+  size_t merch_stock = ioopm_store_count_stock(store, merch_names[0]);
 
   CU_ASSERT_EQUAL(merch_stock, quantities[0] + quantities[1]);
 
-  store_cart_add_merch(store, cart_id, merch_names[0],
-                       (quantities[0] + quantities[1]) / 2);
+  ioopm_store_cart_add_merch(store, cart_id, merch_names[0],
+                             (quantities[0] + quantities[1]) / 2);
 
-  store_cart_checkout(store, cart_id);
+  ioopm_store_cart_checkout(store, cart_id);
 
-  merch_stock = store_count_stock(store, merch_names[0]);
+  merch_stock = ioopm_store_count_stock(store, merch_names[0]);
   CU_ASSERT_EQUAL(merch_stock, (quantities[0] + quantities[1]) / 2);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 void test_store_to_cart_remove(void) {
 
-  store_t *store = store_create();
+  ioopm_store_t *store = ioopm_store_create();
 
-  store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
+  ioopm_store_add_merch(store, merch_names[0], descriptions[0], prices[0]);
 
-  store_replenish_merch(store, merch_names[0], shelf_names[0], quantities[0]);
+  ioopm_store_replenish_merch(store, merch_names[0], shelf_names[0],
+                              quantities[0]);
 
-  size_t cart_id = store_add_cart(store);
+  size_t cart_id = ioopm_store_add_cart(store);
 
-  store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
+  ioopm_store_cart_add_merch(store, cart_id, merch_names[0], quantities[0]);
 
-  store_remove_merch(store, merch_names[0]);
+  ioopm_store_remove_merch(store, merch_names[0]);
 
-  cart_result_t result =
-      store_cart_remove_merch(store, cart_id, merch_names[0], 0);
+  ioopm_cart_result_t result =
+      ioopm_store_cart_remove_merch(store, cart_id, merch_names[0], 0);
   CU_ASSERT_FALSE(result.is_ok);
   CU_ASSERT_EQUAL(MERCH_NOT_IN_STORE, result.error);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
 }
 
 int init_suite(void) {
@@ -443,9 +456,9 @@ int main(void) {
       (CU_add_test(backend_test_suite, "Edit merch succesfully",
                    test_merch_edit_success) == NULL) ||
       (CU_add_test(backend_test_suite, "Stock of merch that isnt stocked",
-                   test_store_get_stock_non_existing) == NULL) ||
+                   test_ioopm_store_get_stock_non_existing) == NULL) ||
       (CU_add_test(backend_test_suite, "Stock of merch that is stocked",
-                   test_store_get_stock) == NULL) ||
+                   test_ioopm_store_get_stock) == NULL) ||
       (CU_add_test(backend_test_suite, "Test list of merch", test_merch_list) ==
        NULL) ||
       (CU_add_test(backend_test_suite, "Add and remove cart to/from store",

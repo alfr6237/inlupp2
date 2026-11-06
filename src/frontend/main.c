@@ -2,10 +2,10 @@
 #include "tui.h"
 
 int main(void) {
-  store_t *store = store_create();
+  store_t *store = ioopm_store_create();
 
-  event_loop(store);
+  ioopm_event_loop(store);
 
-  store_destroy(store);
+  ioopm_store_destroy(store);
   return 0;
 }
