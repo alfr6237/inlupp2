@@ -307,6 +307,7 @@ static void edit_merch(store_t *store) {
     }
   }
 
+  free(new_desc);
   free(new_name);
   free(name);
 }
@@ -328,7 +329,7 @@ static bool confirmation(unsigned char code, const char *format, ...) {
 
   // Extra space for " [X/x]" and null terminator
   const int extra_space = 7;
-  char *question = malloc((size_t)length + 7);
+  char *question = malloc((size_t)length + extra_space);
   if (!question) {
     va_end(args);
     return false;
@@ -341,7 +342,7 @@ static bool confirmation(unsigned char code, const char *format, ...) {
   char upper = (char)toupper((unsigned char)code);
   char lower = (char)tolower((unsigned char)code);
 
-  snprintf(question + length, 7, " [%c/%c]", upper, lower);
+  snprintf(question + length, extra_space, " [%c/%c]", upper, lower);
 
   char *answer = ask_question_string(question);
   bool result = answer && toupper((unsigned char)answer[0]) == upper;
@@ -353,8 +354,8 @@ static bool confirmation(unsigned char code, const char *format, ...) {
 }
 
 static void replenish(store_t *store) {
-  char *name = ask_question_string("Merch to replenish: ");
   shelf_name_t shelf_name = ask_question_shelf_name("Shelf to replenish: ");
+  char *name = ask_question_string("Merch to replenish: ");
   size_t quantity = ask_question_size("Quantity: ");
 
   const replenish_result_t result =
@@ -384,6 +385,9 @@ static void show_stock(const store_t *store) {
 
   puts("");
   if (stock_list) {
+    if (ioopm_list_is_empty(stock_list)) {
+      printf("%s is not stocked\n", name);
+    }
     print_stock(stock_list);
     ioopm_list_destroy(stock_list);
   } else {
