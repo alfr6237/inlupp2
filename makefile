@@ -24,6 +24,9 @@ VALGRIND = valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1
 
 .PHONY: backend_test frontend_run frontend_test test coverage
 .PHONY: valgrind_backend valgrind_frontend valgrind clean
+.PHONY: all
+
+all: $(BUILD_DIR)/backend_test $(BUILD_DIR)/frontend
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
@@ -35,10 +38,10 @@ $(BUILD_DIR)/backend_test: $(BUILD_DIR)/test/backend.o $(BACKEND_O) $(VENDOR_O)
 $(BUILD_DIR)/frontend: $(FRONTEND_O) $(VENDOR_O) $(BACKEND_O)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS) $(CUNIT_LIBS)
 
-backend_test: $(BUILD_DIR)/backend_test
+run: $(BUILD_DIR)/frontend
 	./$<
 
-frontend_run: $(BUILD_DIR)/frontend
+backend_test: $(BUILD_DIR)/backend_test
 	./$<
 
 frontend_test: $(BUILD_DIR)/frontend
