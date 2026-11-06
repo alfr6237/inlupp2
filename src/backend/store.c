@@ -9,8 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef RESULT(merch_t *, search_error_t) get_merch_result_t;
-
 static bool shelf_eql_fn(elem_t a, elem_t b);
 
 static size_t string_hash_function(elem_t key);
@@ -108,11 +106,11 @@ ioopm_list_t *store_get_stock(const store_t *store, const char *merch_name) {
 
 size_t store_count_stock(store_t *store, const char *merch_name) {
   size_t count = 0;
-  //handling om stock inte finns
+  // handling om stock inte finns
   ioopm_list_t *stock = store_get_stock(store, merch_name);
   if (stock == NULL) {
     return 0;
-}
+  }
   ioopm_list_iterator_t *iter = ioopm_list_iterator_create(stock);
 
   while (!ioopm_list_iterator_at_end(iter)) {

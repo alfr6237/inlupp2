@@ -53,12 +53,6 @@ static shelf_name_t ask_question_shelf_name(const char *question);
 
 answer_t convert_action_fn(const char *str);
 
-int main(void) {
-  store_t *store = store_create();
-  event_loop(store);
-  store_destroy(store);
-}
-
 void event_loop(store_t *store) {
   bool quit = false;
   do {
