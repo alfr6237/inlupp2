@@ -13,6 +13,7 @@ static bool key_eql_fn(elem_t a, elem_t b) { return a.sz == b.sz; }
 
 static ioopm_hash_table_t *cart_create(void);
 static void cart_destroy(ioopm_hash_table_t *cart);
+static void remove_cart(ioopm_store_t *store, ioopm_hash_table_t *cart);
 
 size_t ioopm_store_add_cart(ioopm_store_t *store) {
 
@@ -32,7 +33,7 @@ bool ioopm_store_cart_remove(ioopm_store_t *store, size_t cart_id) {
     return false;
   }
   ioopm_hash_table_t *cart = cart_elem.p;
-  ioopm_remove_cart(store, cart);
+  remove_cart(store, cart);
 
   return true;
 }
@@ -213,7 +214,7 @@ bool ioopm_store_cart_checkout(ioopm_store_t *store, size_t cart_id) {
   return true;
 }
 
-void ioopm_remove_cart(ioopm_store_t *store, ioopm_hash_table_t *cart) {
+static void remove_cart(ioopm_store_t *store, ioopm_hash_table_t *cart) {
 
   ioopm_hash_table_iterator_t *iter = ioopm_hash_table_iterator_create(cart);
 
@@ -247,7 +248,7 @@ void ioopm_destroy_cart_table(ioopm_store_t *store) {
     ioopm_hash_table_t *cart = cart_elem.p;
     // assert(ioopm_hash_table_lookup(store->carts, cart_id_elem, &cart_elem));
 
-    ioopm_remove_cart(store, cart);
+    remove_cart(store, cart);
     ioopm_hash_table_iterator_advance(iter);
   }
 

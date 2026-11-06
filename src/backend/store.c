@@ -23,7 +23,7 @@ static size_t size_t_hash_fn(elem_t s);
 static void remove_merch_value(elem_t merch);
 static void remove_any_elem(elem_t elem);
 
-static void remove_ioopm_list_value(elem_t list);
+static void remove_list_value(elem_t list);
 
 static void stock_remove_fn(elem_t elem);
 
@@ -39,7 +39,7 @@ ioopm_store_t *ioopm_store_create(void) {
   store->shelfs = ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn, NULL,
                                           remove_any_elem);
   store->locations = ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn,
-                                             NULL, remove_ioopm_list_value);
+                                             NULL, remove_list_value);
 
   store->carts =
       ioopm_hash_table_create(size_t_hash_fn, size_t_eql_fn, NULL, NULL);
@@ -191,4 +191,4 @@ static void remove_any_elem(elem_t elem) { free(elem.p); }
 
 static void remove_merch_value(elem_t merch) { ioopm_merch_destroy(merch.p); }
 
-static void remove_ioopm_list_value(elem_t list) { ioopm_list_destroy(list.p); }
+static void remove_list_value(elem_t list) { ioopm_list_destroy(list.p); }
