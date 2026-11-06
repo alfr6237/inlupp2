@@ -52,9 +52,11 @@ coverage: $(BUILD_DIR)/backend_test $(BUILD_DIR)/frontend
 	rm -rf $(BUILD_DIR)/coverage
 	mkdir -p $(BUILD_DIR)/coverage
 	@for obj in $(BACKEND_O) $(FRONTEND_O); do \
-		(cd $(BUILD_DIR)/coverage && \
-		gcov -b -c -s "$(CURDIR)" "../../$$obj") || exit 1; \
+		src=$${obj#$(BUILD_DIR)/}; \
+		src=$${src%.o}.c; \
+		gcov -b -c -o "$$obj" "$$src" || exit 1; \
 	done
+	mv *.gcov $(BUILD_DIR)/coverage/
 
 valgrind_backend: $(BUILD_DIR)/backend_test
 	$(VALGRIND) ./$<
