@@ -2,9 +2,7 @@
 #include "../../vendor/linked_list_iterator.h"
 #include "cart.h"
 #include "merch.h"
-#include "result.h"
 #include <assert.h>
-#include <ctype.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>

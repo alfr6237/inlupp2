@@ -2,7 +2,7 @@
 #include "../../vendor/hash_table.h"
 #include "common.h"
 #include "merch.h"
-#include "result.h"
+#include "../../vendor/linked_list.h"
 #include <stddef.h>
 
 ///@file store.h

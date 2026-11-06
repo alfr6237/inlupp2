@@ -535,9 +535,9 @@ static void calculate_cost(store_t *store) {
   bool success = store_cart_cost(store, cart_id, &cart_cost);
 
   if (success) {
-    printf("The cost of cart with ID: %zu is %zu", cart_id, cart_cost);
+    printf("The cost of cart with ID: %zu is %zu\n", cart_id, cart_cost);
   } else {
-    printf("A cart with ID: %zu does not exist in store", cart_id);
+    printf("A cart with ID: %zu does not exist in store\n", cart_id);
   }
 }
 
@@ -547,8 +547,8 @@ static void checkout(store_t *store) {
   bool sucess = store_cart_checkout(store, cart_id);
 
   if (sucess) {
-    printf("Cart with ID: %zu has sucessfully been checked out", cart_id);
+    printf("Cart with ID: %zu has sucessfully been checked out\n", cart_id);
   } else {
-    printf("Cart with ID: %zu does not exist in store", cart_id);
+    printf("Cart with ID: %zu does not exist in store\n", cart_id);
   }
 }
