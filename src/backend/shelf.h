@@ -1,7 +1,5 @@
 #pragma once
 #include "common.h"
-#include "result.h"
-#include <stdbool.h>
 #include <stddef.h>
 
 /// @file shelf.h

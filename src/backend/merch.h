@@ -1,8 +1,6 @@
 #pragma once
-#include "../../vendor/linked_list.h"
 #include "common.h"
-#include <stddef.h>
-#include <stdio.h>
+
 ///@file merch.h
 ///@brief interanl file to the backend that make it possbile for both store.c
 /// and merch.c to

@@ -196,25 +196,6 @@ static void swap_link(link_t **prev_next_a, link_t **prev_next_b) {
     *prev_next_a = link_b;
     *prev_next_b = link_a;
   }
-
-  // //make previous pointer to a now point to b, a:s next pointer is now b:s
-  // next *prev_next_a = link_b; if(link_b->next == link_a)
-  // {
-  //   link_a->next = link_b;
-  // }
-  // else
-  // {
-  //   link_a->next = link_b->next;
-  // }
-  // //make prev pointer of b now point to a, next pointer of b is now old next
-  // pointer of a *prev_next_b = link_a; if(link_a->next == link_b)
-  // {
-  //   link_b->next = link_a;
-  // }
-  // else
-  // {
-  //   link_b->next = link_a_next;
-  // }
 }
 
 void ioopm_list_sort(ioopm_list_t *list, less_than_fn_t *less_than_fn) {
